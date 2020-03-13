@@ -1,7 +1,6 @@
 from discord.ext import commands
 import discord
-
-# TODO: Copy challonge API code to here.
+import os
 
 bot = commands.Bot(command_prefix='/', description='Talk to the TO')
 
@@ -12,8 +11,8 @@ async def auTO(ctx):
 
 @auTO.command()
 async def start(ctx, url):
-    # TODO: DM caller to configure Challonge credentials, otherwise start
-    # calling matches.
+    """Sets tournament URL and start calling matches."""
+    pass
 
 @auTO.command()
 async def matches(ctx):
@@ -26,13 +25,10 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    # TODO: Verify that the user is allowed to run this command.
-    if not isinstance(message.channel, discord.channel.DMChannel):
-        return
-
-    # TODO: Pass Challonge credentials to the bot.
-    print('got dm: "{}"'.format(message.content))
+    if message.content == '!bracket':
+        # TODO: Post tournament URL.
+        pass
 
 if __name__ == '__main__':
-    token = ''
+    token = os.environ.get('DISCORD_TOKEN')
     bot.run(token)
