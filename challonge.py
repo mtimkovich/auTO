@@ -13,23 +13,27 @@ URLS = {
     'matches': os.path.join(BASE_CHALLONGE_API_URL, '{}', 'matches.json'),
 }
 
+def extract_id(url):
+    """Extract the tournament id of the tournament from its name or URL."""
+    match = re.search(r'(\w+)?\.?challonge.com/([^/]+)', url)
+
+    if match is None or match.group(2) is None:
+        raise ValueError('Invalid Challonge URL: {}.'.format(url))
+
+    subdomain, tourney = match.groups()
+
+    if subdomain is None:
+        return tourney
+    else:
+        return '{}-{}'.format(subdomain, tourney)
+
 class Challonge(object):
-    async def __aenter__(self):
-        self.session = aiohttp.ClientSession()
-        await self.get_raw()
-        return self
-
-    async def __aexit__(self, *args, **kwargs):
-        await self.session.close()
-        self.session = None
-
-    def __init__(self, tournament_url):
+    def __init__(self, tournament_id):
         self.api_key = os.environ.get('CHALLONGE_KEY')
         if self.api_key is None:
             raise RuntimeError('CHALLONGE_KEY is unset')
         self.api_key_dict = {'api_key': self.api_key}
-        self.tournament_url = tournament_url
-        self.tournament_id = self.extract_id(tournament_url)
+        self.tournament_id = tournament_id
 
         self.player_map = None
         self.raw_dict = None
@@ -47,11 +51,12 @@ class Challonge(object):
 
     async def update_data(self, key):
         url = URLS[key].format(self.tournament_id)
-        async with self.session.get(url, params=self.api_key_dict) as resp:
-            data = await resp.json()
-            self.raw_dict[key] = data
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=self.api_key_dict) as resp:
+                data = await resp.json()
+                self.raw_dict[key] = data
 
-            return data
+                return data
 
     def get_url(self):
         return self.raw_dict['tournament']['tournament']['full_challonge_url']
@@ -141,19 +146,6 @@ class Challonge(object):
                 if p['participant']['name'] else p['participant']['username'].strip()
                 for p in self.raw_dict['participants']]
 
-    def extract_id(self, url):
-        """Extract the tournament id of the tournament from its name or URL."""
-        match = re.search(r'(\w+)?\.?challonge.com/([^/]+)', url)
-
-        if match is None or match.group(2) is None:
-            raise ValueError('Invalid Challonge URL: {}.'.format(url))
-
-        subdomain, tourney = match.groups()
-
-        if subdomain is None:
-            return tourney
-        else:
-            return '{}-{}'.format(subdomain, tourney)
 
 async def main():
     tournament_url = 'https://mtvmelee.challonge.com/100_amateur'

@@ -1,44 +1,99 @@
-from discord.ext import commands
 import discord
+from discord.ext import commands
+import logging
 import os
 
 import challonge
 
-bot = commands.Bot(command_prefix='/', description='Talk to the TO')
-tournament_url = 'https://mtvmelee.challonge.com/100_amateur'
-gar = challonge.Challonge(tournament_url)
+# logger = logging.getLogger('discord')
+# logger.setLevel(logging.DEBUG)
+# handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+# handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+# logger.addHandler(handler)
 
-@bot.group()
-async def auTO(ctx):
-    if ctx.invoked_subcommand is None:
-        await ctx.send('Use `/auTO help` for options')
+class TOCommands(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.gar = None
+        self.open_matches = []
 
-@auTO.command()
-async def start(ctx, url):
-    """Sets tournament URL and start calling matches."""
-    pass
+    @commands.group()
+    async def auTO(self, ctx):
+        if ctx.invoked_subcommand is None:
+            await ctx.send('Use `/auTO help` for options')
 
-@auTO.command()
-async def matches(ctx):
-    """Checks for match updates and prints current matches to the channel."""
-    open_matches = await gar.get_open_matches()
-    for match in open_matches:
-        await ctx.send('{round}: @{player1} vs @{player2}', **match)
-    await ctx.send('@DJSwerve vs @DJSwerve')
+    @auTO.command()
+    async def help(self, ctx):
+        await ctx.send('¯\_(ツ)_/¯')
 
-@bot.event
-async def on_ready():
-    print('>>> auTO has connected to Discord')
+    @auTO.command()
+    async def start(self, ctx, url):
+        """Sets tournament URL and start calling matches."""
+        if self.gar is not None:
+            await ctx.send('Tournament is already in progress')
+            return
 
-@bot.event
-async def on_message(message):
-    if message.content == '!bracket':
-        await message.channel.send(tournament_url)
+        try:
+            tournament_id = challonge.extract_id(url)
+        except ValueError as e:
+            await ctx.send(e)
+            return
+
+        await ctx.trigger_typing()
+        self.gar = challonge.Challonge(tournament_id)
+        await self.gar.get_raw()
+
+        start_msg = await ctx.send('Starting {}! {}'.format(
+            self.gar.get_name(), self.gar.get_url()))
+        await start_msg.pin()
+        await self.matches(ctx)
+
+    @auTO.command()
+    async def matches(self, ctx):
+        """Checks for match updates and prints matches to the channel."""
+        if self.gar is None:
+            await ctx.send('tournament not started')
+            return
+
+        await ctx.trigger_typing()
+        self.open_matches = await self.gar.get_open_matches()
+        announcement = []
+        for m in self.open_matches:
+            match = '**{}**: {} vs {}'.format(m['round'],
+                                              self.mention_user(m['player1']),
+                                              self.mention_user(m['player2']))
+            announcement.append(match)
+
+        await ctx.send('\n'.join(announcement))
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        print('>>> auTO has connected to Discord')
+
+        activity = discord.Activity(name='Dolphin',
+                                    type=discord.ActivityType.watching)
+        await self.bot.change_presence(activity=activity)
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if self.gar is not None and message.content == '!bracket':
+            await message.channel.send(self.gar.get_url())
+
+    def mention_user(self, username: str) -> str:
+        """Gets the user mention string. If the user isn't found, just return
+        the username."""
+        # TODO: Map Challonge usernames to Discord usernames.
+        for member in self.bot.get_all_members():
+            if member.display_name == username:
+                return member.mention
+        return '@{}'.format(username)
 
 if __name__ == '__main__':
-    token = os.environ.get('DISCORD_TOKEN')
+    TOKEN = os.environ.get('DISCORD_TOKEN')
 
-    if token is None:
-        raise RuntimeError('DISCORD_TOKEN not set')
+    if TOKEN is None:
+        raise RuntimeError('DISCORD_TOKEN is unset')
 
-    bot.run(token)
+    bot = commands.Bot(command_prefix='/', description='Talk to the TO')
+    bot.add_cog(TOCommands(bot))
+    bot.run(TOKEN)
