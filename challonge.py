@@ -110,6 +110,10 @@ class Challonge(object):
                     self.player_map[gpid] = player_name
         return self.player_map
 
+    async def report_match(self, match_id, score1, score2):
+        MATCH_URL = os.path.join(BASE_CHALLONGE_API_URL, '{}', 'matches', '{}.json')
+        url = MATCH_URL.format(self.tournament_id, match_id)
+
     async def get_open_matches(self):
         # sometimes challonge seems to use the "group_player_ids" parameter of "participant" instead
         # of the "id" parameter of "participant" in the "matches" api.

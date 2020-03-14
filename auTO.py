@@ -1,5 +1,6 @@
+import aiohttp
 import discord
-from discord.ext import commands
+from discord.ext import tasks, commands
 import logging
 import os
 
@@ -16,6 +17,12 @@ class TOCommands(commands.Cog):
         self.bot = bot
         self.gar = None
         self.open_matches = []
+        self.session = None
+        self.bot.loop.create_task(self.http_client())
+
+    async def http_client(self):
+        await self.bot.wait_until_ready()
+        self.session = aiohttp.ClientSession()
 
     @commands.group()
     async def auTO(self, ctx):
@@ -32,7 +39,6 @@ class TOCommands(commands.Cog):
         if self.gar is not None:
             await ctx.send('Tournament is already in progress')
             return
-
         try:
             tournament_id = challonge.extract_id(url)
         except ValueError as e:
@@ -78,6 +84,9 @@ class TOCommands(commands.Cog):
     async def on_message(self, message):
         if self.gar is not None and message.content == '!bracket':
             await message.channel.send(self.gar.get_url())
+        elif message.content == '!help':
+            async with self.session.get('http://aws.random.cat/meow') as resp:
+                await message.channel.send(await resp.json())
 
     def mention_user(self, username: str) -> str:
         """Gets the user mention string. If the user isn't found, just return
