@@ -1,6 +1,7 @@
 import aiohttp
 import asyncio
 import iso8601
+import math
 import os
 import re
 
@@ -28,6 +29,7 @@ class Challonge(object):
         self.tournament_url = tournament_url
         self.tournament_id = self.extract_id(tournament_url)
 
+        self.player_map = None
         self.raw_dict = None
 
     async def get_raw(self):
@@ -44,88 +46,98 @@ class Challonge(object):
     async def update_data(self, key):
         url = URLS[key].format(self.tournament_id)
         async with self.session.get(url, params=self.api_key_dict) as resp:
-            self.raw_dict[key] = await resp.json()
+            data = await resp.json()
+            self.raw_dict[key] = data
 
-    async def get_url(self):
-        return self.get_raw()['tournament']['tournament']['full_challonge_url']
+            return data
 
-    async def get_name(self):
-        return self.get_raw()['tournament']['tournament']['name'].strip()
+    def get_url(self):
+        return self.raw_dict['tournament']['tournament']['full_challonge_url']
 
-    async def get_date(self):
-        return iso8601.parse_date(self.get_raw()['tournament']['tournament']['created_at'])
+    def get_name(self):
+        return self.raw_dict['tournament']['tournament']['name'].strip()
 
-    async def _human_round_names(self, matches):
-        """Convert round names from numbers into strings like WQF and LF."""
-        last_round = matches[-1]['round']
+    def get_date(self):
+        return iso8601.parse_date(self.raw_dict['tournament']['tournament']['created_at'])
 
-        SUFFIXES = ['GF', 'F', 'SF', 'QF']
+    def num_winners_rounds(self, num_players: int) -> int:
+        return int(math.ceil(math.log(num_players, 2))) + 1
 
-        rounds = {}
-        for i, finals in enumerate(SUFFIXES):
-            rounds[last_round-i] = finals
-        for i, finals in enumerate(SUFFIXES[1:]):
-            rounds[-(last_round-i)-1] = finals
+    def num_total_rounds(self, num_players: int) -> int:
+        log2 = math.log(num_players, 2)
+        return int(math.ceil(log2) + math.ceil(math.log(log2, 2)))
 
-        reset = matches[-1]['round'] == matches[-2]['round']
-        reset_count = 1
+    def round_name(self, round_num: int) -> str:
+        """Creates the shortened human-readable version of round names."""
+        num_players = len(self.get_players())
+        winners_rounds = self.num_winners_rounds(num_players)
+        total_rounds = self.num_total_rounds(num_players)
 
-        for m in matches:
-            r = m['round']
-            name = 'W' if r > 0 else 'L'
-            if r not in rounds:
-                name = '{}R{}'.format(name, abs(r))
-            else:
-                if rounds[r] != 'GF':
-                    name += rounds[r]
-                else:
-                    name = 'GF'
+        prefix = 'W' if round_num > 0 else 'L'
+        suffix = 'R{}'.format(abs(round_num))
 
-                    if reset:
-                        name += str(reset_count)
-                        reset_count += 1
+        if round_num == winners_rounds:
+            return 'GF'
+        elif round_num == winners_rounds - 1 or round_num == -total_rounds:
+            suffix = 'F'
+        elif round_num == winners_rounds - 2 or round_num == -total_rounds + 1:
+            suffix = 'SF'
+        elif round_num == winners_rounds - 3 or round_num == -total_rounds + 2:
+            suffix = 'QF'
 
-            m['round'] = name
+        return '{}{}'.format(prefix, suffix)
 
+    def get_player_map(self):
+        if self.player_map is not None:
+            return self.player_map
 
-    async def get_matches(self):
-        # sometimes challonge seems to use the "group_player_ids" parameter of "participant" instead
-        # of the "id" parameter of "participant" in the "matches" api.
-        # not sure exactly when this happens, but the following code checks for both
-        # TODO: We only want open matches.
-        # TODO: Player map should be an instance variable.
-        player_map = dict()
-        for p in self.get_raw()['participants']:
+        self.player_map = {}
+        for p in self.raw_dict['participants']:
             if p['participant'].get('name'):
                 player_name = p['participant']['name'].strip()
             else:
                 player_name = p['participant'].get('username', '<unknown>').strip()
-            player_map[p['participant'].get('id')] = player_name
+            self.player_map[p['participant'].get('id')] = player_name
             if p['participant'].get('group_player_ids'):
                 for gpid in p['participant']['group_player_ids']:
-                    player_map[gpid] = player_name
+                    self.player_map[gpid] = player_name
+        return self.player_map
 
+    async def get_open_matches(self):
+        # sometimes challonge seems to use the "group_player_ids" parameter of "participant" instead
+        # of the "id" parameter of "participant" in the "matches" api.
+        # not sure exactly when this happens, but the following code checks for both
+
+        # Unlike the other variables, this one needs to be fetched everytime
+        # we use it.
         matches = []
-        # TODO: We don't want to use the cached matches value here.
-        for m in self.get_raw()['matches']:
+        for m in await self.update_data('matches'):
             m = m['match']
 
-            set_count = m['scores_csv']
-            winner_id = m['winner_id']
-            loser_id = m['loser_id']
+            player1_id = m['player1_id']
+            player2_id = m['player2_id']
+            id = m['id']
+            state = m['state']
             round_num = m['round']
-            if winner_id is not None and loser_id is not None:
-                winner = player_map[winner_id]
-                loser = player_map[loser_id]
-                match_result = {'winner': winner, 'loser': loser, 'round': round_num}
-                matches.append(match_result)
-        self._human_round_names(matches)
+
+            if state != 'open':
+                continue
+
+            player1 = self.get_player_map()[player1_id]
+            player2 = self.get_player_map()[player2_id]
+            match = {
+                'player1': player1,
+                'player2': player2,
+                'id': id,
+                'round': self.round_name(round_num)
+            }
+            matches.append(match)
         return matches
 
-    async def get_players(self):
+    def get_players(self):
         return [p['participant']['name'].strip()
                 if p['participant']['name'] else p['participant']['username'].strip()
-                for p in self.get_raw()['participants']]
+                for p in self.raw_dict['participants']]
 
     def extract_id(self, url):
         """Extract the tournament id of the tournament from its name or URL."""
@@ -144,7 +156,9 @@ class Challonge(object):
 async def main():
     tournament_url = 'https://mtvmelee.challonge.com/100_amateur'
     async with Challonge(tournament_url) as gar:
-        print(await gar.get_raw())
+        open_matches = await gar.get_open_matches()
+        for match in open_matches:
+            print('{round}: @{player1} vs @{player2}'.format(**match))
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
