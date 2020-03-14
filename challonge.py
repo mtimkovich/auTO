@@ -25,6 +25,8 @@ class Challonge(object):
 
     def __init__(self, tournament_url):
         self.api_key = os.environ.get('CHALLONGE_KEY')
+        if self.api_key is None:
+            raise RuntimeError('CHALLONGE_KEY is unset')
         self.api_key_dict = {'api_key': self.api_key}
         self.tournament_url = tournament_url
         self.tournament_id = self.extract_id(tournament_url)
