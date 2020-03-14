@@ -15,14 +15,16 @@ import challonge
 class TOCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.gar = None
         self.open_matches = []
         self.session = None
-        self.bot.loop.create_task(self.http_client())
+        self.gar = None
+        self.started = False
+        self.bot.loop.create_task(self.create_gar())
 
-    async def http_client(self):
+    async def create_gar(self):
         await self.bot.wait_until_ready()
         self.session = aiohttp.ClientSession()
+        self.gar = challonge.Challonge(self.session)
 
     @commands.group()
     async def auTO(self, ctx):
@@ -33,12 +35,13 @@ class TOCommands(commands.Cog):
     async def help(self, ctx):
         await ctx.send('¯\_(ツ)_/¯')
 
-    @auTO.command()
+    @auTO.command(brief='Challonge URL of tournament')
     async def start(self, ctx, url):
         """Sets tournament URL and start calling matches."""
-        if self.gar is not None:
+        if self.started:
             await ctx.send('Tournament is already in progress')
             return
+
         try:
             tournament_id = challonge.extract_id(url)
         except ValueError as e:
@@ -46,8 +49,8 @@ class TOCommands(commands.Cog):
             return
 
         await ctx.trigger_typing()
-        self.gar = challonge.Challonge(tournament_id)
-        await self.gar.get_raw()
+        await self.gar.get_raw(tournament_id)
+        self.started = True
 
         start_msg = await ctx.send('Starting {}! {}'.format(
             self.gar.get_name(), self.gar.get_url()))
@@ -57,7 +60,7 @@ class TOCommands(commands.Cog):
     @auTO.command()
     async def matches(self, ctx):
         """Checks for match updates and prints matches to the channel."""
-        if self.gar is None:
+        if not self.started:
             await ctx.send('tournament not started')
             return
 
@@ -73,6 +76,16 @@ class TOCommands(commands.Cog):
         await ctx.send('\n'.join(announcement))
 
     @commands.Cog.listener()
+    async def on_command_error(self, ctx, err):
+        if not isinstance(err, commands.MissingRequiredArgument):
+            raise err
+
+        if ctx.invoked_subcommand.name == 'start':
+            await ctx.send('Tournament URL is required')
+        else:
+            await ctx.send(err)
+
+    @commands.Cog.listener()
     async def on_ready(self):
         print('>>> auTO has connected to Discord')
 
@@ -82,11 +95,8 @@ class TOCommands(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if self.gar is not None and message.content == '!bracket':
+        if self.started and message.content == '!bracket':
             await message.channel.send(self.gar.get_url())
-        elif message.content == '!help':
-            async with self.session.get('http://aws.random.cat/meow') as resp:
-                await message.channel.send(await resp.json())
 
     def mention_user(self, username: str) -> str:
         """Gets the user mention string. If the user isn't found, just return

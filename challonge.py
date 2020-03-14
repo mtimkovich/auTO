@@ -1,4 +1,3 @@
-import aiohttp
 import asyncio
 import iso8601
 import math
@@ -28,17 +27,19 @@ def extract_id(url):
         return '{}-{}'.format(subdomain, tourney)
 
 class Challonge(object):
-    def __init__(self, tournament_id):
+    def __init__(self, session):
         self.api_key = os.environ.get('CHALLONGE_KEY')
         if self.api_key is None:
             raise RuntimeError('CHALLONGE_KEY is unset')
         self.api_key_dict = {'api_key': self.api_key}
-        self.tournament_id = tournament_id
+        self.session = session
 
         self.player_map = None
         self.raw_dict = None
 
-    async def get_raw(self):
+    async def get_raw(self, tournament_id):
+        self.tournament_id = tournament_id
+
         if self.raw_dict is not None:
             return self.raw_dict
 
@@ -51,12 +52,11 @@ class Challonge(object):
 
     async def update_data(self, key):
         url = URLS[key].format(self.tournament_id)
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=self.api_key_dict) as resp:
-                data = await resp.json()
-                self.raw_dict[key] = data
+        async with self.session.get(url, params=self.api_key_dict) as resp:
+            data = await resp.json()
+            self.raw_dict[key] = data
 
-                return data
+            return data
 
     def get_url(self):
         return self.raw_dict['tournament']['tournament']['full_challonge_url']
