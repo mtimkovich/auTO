@@ -10,15 +10,14 @@ class TOCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.open_matches = []
-        self.session = None
         self.gar = None
         self.started = False
         self.bot.loop.create_task(self.create_gar())
 
     async def create_gar(self):
         await self.bot.wait_until_ready()
-        self.session = aiohttp.ClientSession(raise_for_status=True)
-        self.gar = challonge.Challonge(self.session)
+        session = aiohttp.ClientSession(raise_for_status=True)
+        self.gar = challonge.Challonge(session)
 
     @commands.group()
     async def auTO(self, ctx):
@@ -71,7 +70,7 @@ class TOCommands(commands.Cog):
     async def matches(self, ctx):
         """Checks for match updates and prints matches to the channel."""
         if not self.started:
-            await ctx.send('tournament not started')
+            await ctx.send('Tournament not started')
             return
 
         await ctx.trigger_typing()
@@ -83,7 +82,7 @@ class TOCommands(commands.Cog):
 
         announcement = []
         for m in self.open_matches:
-            match = '{}: {} vs {}'.format(m['round'],
+            match = '**{}**: {} vs {}'.format(m['round'],
                                               self.mention_user(m['player1']),
                                               self.mention_user(m['player2']))
             if m['underway']:
