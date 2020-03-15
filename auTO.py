@@ -1,17 +1,10 @@
 import aiohttp
 import discord
 from discord.ext import tasks, commands
-import logging
 import os
 import re
 
 import challonge
-
-# logger = logging.getLogger('discord')
-# logger.setLevel(logging.DEBUG)
-# handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-# handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-# logger.addHandler(handler)
 
 class TOCommands(commands.Cog):
     def __init__(self, bot):
@@ -34,6 +27,7 @@ class TOCommands(commands.Cog):
 
     @auTO.command()
     async def help(self, ctx):
+        # TODO: DM users with help text.
         await ctx.send('¯\_(ツ)_/¯')
 
     @auTO.command(brief='Challonge URL of tournament')
@@ -58,6 +52,12 @@ class TOCommands(commands.Cog):
         await start_msg.pin()
         await self.matches(ctx)
 
+    @auTO.command()
+    async def stop(self, ctx):
+        self.started = False
+        self.gar.reset()
+        await ctx.send('Goodbye')
+
     async def end_tournament(self, ctx):
         # TODO: Print the top 3.
         self.started = False
@@ -73,13 +73,14 @@ class TOCommands(commands.Cog):
         await ctx.trigger_typing()
         self.open_matches = await self.gar.get_open_matches()
 
+        # TODO: Check that the tournament has started whoops.
         if not self.open_matches:
             await self.end_tournament(ctx)
             return
 
         announcement = []
         for m in self.open_matches:
-            match = '**{}**: {} vs {}'.format(m['round'],
+            match = '{}: {} vs {}'.format(m['round'],
                                               self.mention_user(m['player1']),
                                               self.mention_user(m['player2']))
             if m['underway']:
@@ -101,7 +102,7 @@ class TOCommands(commands.Cog):
             return
 
         if not re.match('\d-\d', scores_csv):
-            await ctx.send('Invalid report. Should be `/auTO report your_score-opponent_score`')
+            await ctx.send('Invalid report. Should be `/auTO report 0-2`')
             return
 
         scores = [int(n) for n in scores_csv.split('-')]
@@ -111,7 +112,7 @@ class TOCommands(commands.Cog):
         elif scores[0] < scores[1]:
             player1_win = False
         else:
-            await ctx.send('No ties allowed')
+            await ctx.send('No ties allowed.')
             return
 
         match_id = None
@@ -181,13 +182,14 @@ class TOCommands(commands.Cog):
         # If someone posts a netplay code for their opponent, mark their
         # match as underway.
         elif (len(message.mentions) == 1 and
-              re.search(r'\b[a-f0-9]{8}\b', message.contents)):
+              re.search(r'\b[a-f0-9]{8}\b', message.content)):
             await self.mark_match_underway(message.mentions[0], message.author)
 
     def mention_user(self, username: str) -> str:
         """Gets the user mention string. If the user isn't found, just return
         the username."""
         # TODO: Map Challonge usernames to Discord usernames.
+        # TODO: This should only check the current guild.
         for member in self.bot.get_all_members():
             if member.display_name == username:
                 return member.mention
@@ -198,6 +200,11 @@ if __name__ == '__main__':
 
     if TOKEN is None:
         raise RuntimeError('DISCORD_TOKEN is unset')
+
+    # TODO: Ask user for Challonge key.
+    # TODO: Make it so only users with correct permissions can start a
+    # tournament.
+    # TODO: Work across multiple guilds.
 
     bot = commands.Bot(command_prefix='/', description='Talk to the TO')
     bot.add_cog(TOCommands(bot))

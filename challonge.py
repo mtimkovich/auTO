@@ -40,6 +40,11 @@ class Challonge(object):
         self.player_map = None
         self.raw_dict = None
 
+    def reset(self):
+        self.player_map = None
+        self.raw_dict = None
+        self.tournament_id = None
+
     async def get_raw(self, tournament_id):
         self.tournament_id = tournament_id
 
@@ -78,7 +83,7 @@ class Challonge(object):
         return int(math.ceil(log2) + math.ceil(math.log(log2, 2)))
 
     def round_name(self, round_num: int) -> str:
-        """Creates the shortened human-readable version of round names."""
+        """Creates the shortened, human-readable version of round names."""
         num_players = len(self.get_players())
         winners_rounds = self.num_winners_rounds(num_players)
         total_rounds = self.num_total_rounds(num_players)

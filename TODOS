@@ -1,0 +1,9 @@
+auTO.py:30:        # TODO: DM users with help text.
+auTO.py:62:        # TODO: Print the top 3.
+auTO.py:76:        # TODO: Check that the tournament has started whoops.
+auTO.py:120:        # TODO: This assumes the Challonge and Discord usernames are the same.
+auTO.py:191:        # TODO: Map Challonge usernames to Discord usernames.
+auTO.py:192:        # TODO: This should only check the current guild.
+auTO.py:204:    # TODO: Ask user for Challonge key.
+auTO.py:205:    # TODO: Make it so only users with correct permissions can start a
+auTO.py:207:    # TODO: Work across multiple guilds.
