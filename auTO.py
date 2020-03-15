@@ -82,9 +82,18 @@ class TOCommands(commands.Cog):
             match = '**{}**: {} vs {}'.format(m['round'],
                                               self.mention_user(m['player1']),
                                               self.mention_user(m['player2']))
+            if m['underway']:
+                match += ' (Playing)'
             announcement.append(match)
 
         await ctx.send('\n'.join(announcement))
+
+    def find_match(self, username):
+        for match in self.open_matches:
+            if username in [match['player1'], match['player2']]:
+                return match
+        else:
+            return None
 
     @auTO.command(brief='Report match results')
     async def report(self, ctx, scores_csv: str):
@@ -110,24 +119,21 @@ class TOCommands(commands.Cog):
         # TODO: This assumes the Challonge and Discord usernames are the same.
         username = ctx.author.display_name
 
-        for match in self.open_matches:
-            if username not in [match['player1'], match['player2']]:
-                continue
-
-            match_id = match['id']
-            if username == match['player2']:
-                # Scores are reported with player1's score first.
-                scores_csv = scores_csv[::-1]
-                player1_win = not player1_win
-
-            if player1_win:
-                winner_id = match['player1_id']
-            else:
-                winner_id = match['player2_id']
-
-        if match_id is None:
+        match = self.find_match(username)
+        if match is None:
             await ctx.send('{} not found in current matches'.format(username))
             return
+
+        match_id = match['id']
+        if username == match['player2']:
+            # Scores are reported with player1's score first.
+            scores_csv = scores_csv[::-1]
+            player1_win = not player1_win
+
+        if player1_win:
+            winner_id = match['player1_id']
+        else:
+            winner_id = match['player2_id']
 
         await ctx.trigger_typing()
         await self.gar.report_match(match_id, winner_id, scores_csv)
@@ -151,10 +157,32 @@ class TOCommands(commands.Cog):
                                     type=discord.ActivityType.watching)
         await self.bot.change_presence(activity=activity)
 
+    async def mark_match_underway(self, user1, user2):
+        match_id = None
+
+        for user in [user1, user2]:
+            match = self.find_match(user.display_name)
+            if match is None:
+                return
+            elif match_id is None:
+                match_id = match['id']
+            elif match_id != match['id']:
+                return
+
+        await self.gar.mark_underway(match_id)
+
     @commands.Cog.listener()
     async def on_message(self, message):
-        if self.started and message.content == '!bracket':
+        if not self.started:
+            return
+
+        if message.content == '!bracket':
             await message.channel.send(self.gar.get_url())
+        # If someone posts a netplay code for their opponent, mark their
+        # match as underway.
+        elif (len(message.mentions) == 1 and
+              re.search(r'\b[a-f0-9]{8}\b', message.contents)):
+            await self.mark_match_underway(message.mentions[0], message.author)
 
     def mention_user(self, username: str) -> str:
         """Gets the user mention string. If the user isn't found, just return
