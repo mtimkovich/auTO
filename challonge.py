@@ -1,3 +1,4 @@
+import aiohttp
 import asyncio
 import iso8601
 import math
@@ -11,6 +12,8 @@ URLS = {
             BASE_CHALLONGE_API_URL, '{}', 'participants.json'),
     'matches': os.path.join(BASE_CHALLONGE_API_URL, '{}', 'matches.json'),
 }
+
+MATCH_URL = os.path.join(BASE_CHALLONGE_API_URL, '{}', 'matches', '{}')
 
 def extract_id(url):
     """Extract the tournament id of the tournament from its name or URL."""
@@ -110,9 +113,21 @@ class Challonge(object):
                     self.player_map[gpid] = player_name
         return self.player_map
 
-    async def report_match(self, match_id, score1, score2):
-        MATCH_URL = os.path.join(BASE_CHALLONGE_API_URL, '{}', 'matches', '{}.json')
-        url = MATCH_URL.format(self.tournament_id, match_id)
+    async def report_match(self, match_id: int, winner_id: int,
+                           scores: str) -> str:
+        url = MATCH_URL.format(self.tournament_id, match_id) + '.json'
+        data = self.api_key_dict.copy()
+        data['match[winner_id]'] = winner_id
+        data['match[scores_csv]'] = scores
+
+        async with self.session.put(url, data=data) as r:
+            return await r.json()
+
+    async def mark_underway(self, match_id: int) -> str:
+        url = os.path.join(MATCH_URL.format(self.tournament_id, match_id),
+                           'mark_as_underway.json')
+        async with self.session.post(url, data=self.api_key_dict) as r:
+            return await r.json()
 
     async def get_open_matches(self):
         # sometimes challonge seems to use the "group_player_ids" parameter of "participant" instead
@@ -130,6 +145,7 @@ class Challonge(object):
             id = m['id']
             state = m['state']
             round_num = m['round']
+            underway = m['underway_at'] is not None
 
             if state != 'open':
                 continue
@@ -138,9 +154,12 @@ class Challonge(object):
             player2 = self.get_player_map()[player2_id]
             match = {
                 'player1': player1,
+                'player1_id': player1_id,
                 'player2': player2,
+                'player2_id': player2_id,
                 'id': id,
-                'round': self.round_name(round_num)
+                'round': self.round_name(round_num),
+                'underway': underway,
             }
             matches.append(match)
         return matches
@@ -152,11 +171,17 @@ class Challonge(object):
 
 
 async def main():
-    tournament_url = 'https://mtvmelee.challonge.com/100_amateur'
-    async with Challonge(tournament_url) as gar:
+    tournament_id = 'mtvmelee-100_amateur'
+    match_id = 163507232
+    winner_id = 88948490
+    async with aiohttp.ClientSession() as session:
+        gar = Challonge(session)
+        await gar.get_raw(tournament_id)
+        # err = await gar.report_match(match_id, winner_id, '2-0')
+        # print(err)
+        await gar.mark_underway(match_id)
         open_matches = await gar.get_open_matches()
-        for match in open_matches:
-            print('{round}: @{player1} vs @{player2}'.format(**match))
+        print(open_matches)
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()

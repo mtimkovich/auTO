@@ -23,7 +23,7 @@ class TOCommands(commands.Cog):
 
     async def create_gar(self):
         await self.bot.wait_until_ready()
-        self.session = aiohttp.ClientSession()
+        self.session = aiohttp.ClientSession(raise_for_status=True)
         self.gar = challonge.Challonge(self.session)
 
     @commands.group()
