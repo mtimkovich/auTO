@@ -3,6 +3,7 @@ import discord
 from discord.ext import tasks, commands
 import logging
 import os
+import re
 
 import challonge
 
@@ -57,6 +58,11 @@ class TOCommands(commands.Cog):
         await start_msg.pin()
         await self.matches(ctx)
 
+    async def end_tournament(self, ctx):
+        # TODO: Print the top 3.
+        self.started = False
+        await ctx.send('End of tournament. Thanks for coming!')
+
     @auTO.command()
     async def matches(self, ctx):
         """Checks for match updates and prints matches to the channel."""
@@ -66,6 +72,11 @@ class TOCommands(commands.Cog):
 
         await ctx.trigger_typing()
         self.open_matches = await self.gar.get_open_matches()
+
+        if not self.open_matches:
+            await self.end_tournament(ctx)
+            return
+
         announcement = []
         for m in self.open_matches:
             match = '**{}**: {} vs {}'.format(m['round'],
@@ -75,37 +86,52 @@ class TOCommands(commands.Cog):
 
         await ctx.send('\n'.join(announcement))
 
-    @auTO.command()
-    async def report(self, ctx, scores_csv):
+    @auTO.command(brief='Report match results')
+    async def report(self, ctx, scores_csv: str):
         if not self.started:
             return
 
-        await ctx.trigger_typing()
-        """TODO:
-        1. Validate scores_csv
-        2. Determine is reporting user is player1 or player2
-        3. Get winner_id
-        4. Make API call.
-        """
-
-        if not re.match('\d-\d'):
-            await ctx.send('Invalid report. Should be `report your-score-opponent-score`')
+        if not re.match('\d-\d', scores_csv):
+            await ctx.send('Invalid report. Should be `/auTO report your_score-opponent_score`')
             return
 
         scores = [int(n) for n in scores_csv.split('-')]
 
         if scores[0] > scores[1]:
-            pass
+            player1_win = True
         elif scores[0] < scores[1]:
-            pass
+            player1_win = False
         else:
             await ctx.send('No ties allowed')
             return
 
+        match_id = None
+        winner_id = None
+        # TODO: This assumes the Challonge and Discord usernames are the same.
+        username = ctx.author.display_name
+
         for match in self.open_matches:
-            # TODO: Find the player's match and who is player1.
-            if ctx.author.display_name == match['player1']:
-                pass
+            if username not in [match['player1'], match['player2']]:
+                continue
+
+            match_id = match['id']
+            if username == match['player2']:
+                # Scores are reported with player1's score first.
+                scores_csv = scores_csv[::-1]
+                player1_win = not player1_win
+
+            if player1_win:
+                winner_id = match['player1_id']
+            else:
+                winner_id = match['player2_id']
+
+        if match_id is None:
+            await ctx.send('{} not found in current matches'.format(username))
+            return
+
+        await ctx.trigger_typing()
+        await self.gar.report_match(match_id, winner_id, scores_csv)
+        await self.matches(ctx)
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, err):
