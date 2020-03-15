@@ -20,7 +20,7 @@ def extract_id(url):
     match = re.search(r'(\w+)?\.?challonge.com/([^/]+)', url)
 
     if match is None or match.group(2) is None:
-        raise ValueError('Invalid Challonge URL: {}.'.format(url))
+        raise ValueError('Invalid Challonge URL: {}'.format(url))
 
     subdomain, tourney = match.groups()
 
@@ -74,6 +74,9 @@ class Challonge(object):
 
     def get_date(self):
         return iso8601.parse_date(self.raw_dict['tournament']['tournament']['created_at'])
+
+    def get_state(self):
+        return self.raw_dict['tournament']['tournament']['state']
 
     def num_winners_rounds(self, num_players: int) -> int:
         return int(math.ceil(math.log(num_players, 2))) + 1

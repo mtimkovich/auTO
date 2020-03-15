@@ -31,7 +31,7 @@ class TOCommands(commands.Cog):
         await ctx.send('¯\_(ツ)_/¯')
 
     @auTO.command(brief='Challonge URL of tournament')
-    async def start(self, ctx, url):
+    async def start(self, ctx, url: str):
         """Sets tournament URL and start calling matches."""
         if self.started:
             await ctx.send('Tournament is already in progress')
@@ -45,8 +45,12 @@ class TOCommands(commands.Cog):
 
         await ctx.trigger_typing()
         await self.gar.get_raw(tournament_id)
-        self.started = True
 
+        if self.gar.get_state() != 'underway':
+            await ctx.send("Tournament hasn't started yet.")
+            return
+
+        self.started = True
         start_msg = await ctx.send('Starting {}! {}'.format(
             self.gar.get_name(), self.gar.get_url()))
         await start_msg.pin()
@@ -73,7 +77,6 @@ class TOCommands(commands.Cog):
         await ctx.trigger_typing()
         self.open_matches = await self.gar.get_open_matches()
 
-        # TODO: Check that the tournament has started whoops.
         if not self.open_matches:
             await self.end_tournament(ctx)
             return
