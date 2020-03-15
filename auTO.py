@@ -75,6 +75,38 @@ class TOCommands(commands.Cog):
 
         await ctx.send('\n'.join(announcement))
 
+    @auTO.command()
+    async def report(self, ctx, scores_csv):
+        if not self.started:
+            return
+
+        await ctx.trigger_typing()
+        """TODO:
+        1. Validate scores_csv
+        2. Determine is reporting user is player1 or player2
+        3. Get winner_id
+        4. Make API call.
+        """
+
+        if not re.match('\d-\d'):
+            await ctx.send('Invalid report. Should be `report your-score-opponent-score`')
+            return
+
+        scores = [int(n) for n in scores_csv.split('-')]
+
+        if scores[0] > scores[1]:
+            pass
+        elif scores[0] < scores[1]:
+            pass
+        else:
+            await ctx.send('No ties allowed')
+            return
+
+        for match in self.open_matches:
+            # TODO: Find the player's match and who is player1.
+            if ctx.author.display_name == match['player1']:
+                pass
+
     @commands.Cog.listener()
     async def on_command_error(self, ctx, err):
         if not isinstance(err, commands.MissingRequiredArgument):
