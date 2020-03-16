@@ -30,24 +30,18 @@ def extract_id(url):
         return '{}-{}'.format(subdomain, tourney)
 
 class Challonge(object):
-    def __init__(self, session):
-        self.api_key = os.environ.get('CHALLONGE_KEY')
+    def __init__(self, api_key, tournament_id, session):
+        self.api_key = api_key
         if self.api_key is None:
             raise RuntimeError('CHALLONGE_KEY is unset')
         self.api_key_dict = {'api_key': self.api_key}
+        self.tournament_id = tournament_id
         self.session = session
 
         self.player_map = None
         self.raw_dict = None
 
-    def reset(self):
-        self.player_map = None
-        self.raw_dict = None
-        self.tournament_id = None
-
-    async def get_raw(self, tournament_id):
-        self.tournament_id = tournament_id
-
+    async def get_raw(self):
         if self.raw_dict is not None:
             return self.raw_dict
 
