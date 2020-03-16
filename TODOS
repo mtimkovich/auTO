@@ -1,7 +1,3 @@
 auTO.py:16:        # TODO: Should ask user for their Challonge key.
-auTO.py:48:        # TODO: Map Challonge usernames to Discord usernames.
-auTO.py:91:        # TODO: DM users with help text.
 auTO.py:126:        # TODO: Print the top 3.
-auTO.py:178:        # TODO: This assumes the Challonge and Discord usernames are the same.
-auTO.py:241:    # TODO: Ask user for Challonge key.
 auTO.py:242:    # TODO: Make it so only users with correct permissions can start a

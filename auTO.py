@@ -87,8 +87,13 @@ class TOCommands(commands.Cog):
 
     @auTO.command()
     async def help(self, ctx):
-        # TODO: DM users with help text.
-        await ctx.send(r'¯\_(ツ)_/¯')
+        help_list = [
+            '- `start [URL]` - start TOing',
+            '- `stop` - stop TOing',
+            '- `report 0-2` - report a match',
+            '- `matches` - print the active matches',
+        ]
+        await ctx.send('\n'.join(help_list))
 
     @auTO.command(brief='Challonge URL of tournament')
     async def start(self, ctx, url: str):
