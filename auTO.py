@@ -19,7 +19,8 @@ class Tournament(object):
                 self.challonge_key, tournament_id, session)
 
     async def get_open_matches(self):
-        self.open_matches = await self.gar.get_open_matches()
+        matches = await self.gar.get_matches()
+        self.open_matches = [m for m in matches if m['state'] == 'open']
 
     async def mark_match_underway(self, user1, user2):
         match_id = None
@@ -45,7 +46,6 @@ class Tournament(object):
     def mention_user(self, username: str) -> str:
         """Gets the user mention string. If the user isn't found, just return
         the username."""
-        # TODO: Map Challonge usernames to Discord usernames.
         for member in self.guild.members:
             if member.display_name == username:
                 return member.mention
@@ -95,7 +95,11 @@ class TOCommands(commands.Cog):
             '- `report 0-2` - report a match',
             '- `matches` - print the active matches',
         ]
-        await ctx.send('\n'.join(help_list))
+        await self.send_list(ctx, help_list)
+
+    async def send_list(self, ctx, the_list):
+        """Send multi-line messages."""
+        await ctx.send('\n'.join(the_list))
 
     @auTO.command(brief='Challonge URL of tournament')
     async def start(self, ctx, url: str):
@@ -114,8 +118,12 @@ class TOCommands(commands.Cog):
         tourney = self.tourney_start(ctx, tournament_id, ctx.author)
         await tourney.gar.get_raw()
 
-        if tourney.gar.get_state() != 'underway':
+        if tourney.gar.get_state() == 'pending':
             await ctx.send("Tournament hasn't been started yet.")
+            self.tourney_stop(ctx)
+            return
+        elif tourney.gar.get_state() == 'ended':
+            await ctx.send("Tournament has already finished.")
             self.tourney_stop(ctx)
             return
 
@@ -129,24 +137,34 @@ class TOCommands(commands.Cog):
         self.tourney_stop(ctx)
         await ctx.send('Goodbye 😞')
 
-    async def end_tournament(self, ctx):
-        # TODO: Print the top 3.
+    async def end_tournament(self, ctx, tourney):
+        top3 = await tourney.gar.top3()
+        top3 = list(map(tourney.mention_user, top3))
+        message = [
+            'Congrats to the winner of {}: **{}**!!'.format(
+                tourney.gar.get_name(), top3[0]),
+            'We had {} entrants!\n'.format(len(tourney.gar.get_players())),
+        ]
+
+        for i, player in enumerate(top3, 1):
+            message.append('{}. {}'.format(i, player))
+
+        await self.send_list(ctx, message)
         self.tourney_stop(ctx)
-        await ctx.send('End of tournament. Thanks for coming!')
 
     @auTO.command()
     async def matches(self, ctx):
         """Checks for match updates and prints matches to the channel."""
         tourney = self.get_tourney(ctx)
         if tourney is None:
-            await ctx.send('Tournament not started')
+            await ctx.send('No tournament running')
             return
 
         await ctx.trigger_typing()
         await tourney.get_open_matches()
 
         if not tourney.open_matches:
-            await self.end_tournament(ctx)
+            await self.end_tournament(ctx, tourney)
             return
 
         announcement = []
@@ -158,7 +176,7 @@ class TOCommands(commands.Cog):
                 match += ' (Playing)'
             announcement.append(match)
 
-        await ctx.send('\n'.join(announcement))
+        await self.send_list(ctx, announcement)
 
     @auTO.command(brief='Report match results')
     async def report(self, ctx, scores_csv: str):
@@ -182,7 +200,6 @@ class TOCommands(commands.Cog):
 
         match_id = None
         winner_id = None
-        # TODO: This assumes the Challonge and Discord usernames are the same.
         username = ctx.author.display_name
 
         match = tourney.find_match(username)

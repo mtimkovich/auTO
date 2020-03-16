@@ -4,6 +4,7 @@ import iso8601
 import math
 import os
 import re
+from typing import Optional, List
 
 BASE_CHALLONGE_API_URL = 'https://api.challonge.com/v1/tournaments'
 URLS = {
@@ -52,6 +53,8 @@ class Challonge(object):
         for key in URLS.keys():
             await self.update_data(key)
 
+        self.set_player_map()
+
         return self.raw_dict
 
     async def update_data(self, key):
@@ -62,23 +65,23 @@ class Challonge(object):
 
             return data
 
-    def get_url(self):
+    def get_url(self) -> str:
         return self.raw_dict['tournament']['tournament']['full_challonge_url']
 
-    def get_name(self):
+    def get_name(self) -> str:
         return self.raw_dict['tournament']['tournament']['name'].strip()
 
     def get_date(self):
         return iso8601.parse_date(
                 self.raw_dict['tournament']['tournament']['created_at'])
 
-    def get_state(self):
+    def get_state(self) -> str:
         return self.raw_dict['tournament']['tournament']['state']
 
     def num_winners_rounds(self, num_players: int) -> int:
         return int(math.ceil(math.log(num_players, 2))) + 1
 
-    def num_total_rounds(self, num_players: int) -> int:
+    def num_losers_rounds(self, num_players: int) -> int:
         log2 = math.log(num_players, 2)
         return int(math.ceil(log2) + math.ceil(math.log(log2, 2)))
 
@@ -86,26 +89,30 @@ class Challonge(object):
         """Creates the shortened, human-readable version of round names."""
         num_players = len(self.get_players())
         winners_rounds = self.num_winners_rounds(num_players)
-        total_rounds = self.num_total_rounds(num_players)
+        losers_rounds = self.num_losers_rounds(num_players)
+
+        # Special case for when #players is a power of 2.
+        if winners_rounds == losers_rounds:
+            losers_rounds -= 1
 
         prefix = 'W' if round_num > 0 else 'L'
         suffix = 'R{}'.format(abs(round_num))
 
         if round_num == winners_rounds:
             return 'GF'
-        elif round_num == winners_rounds - 1 or round_num == -total_rounds:
+        elif (round_num == winners_rounds - 1 or
+              round_num == -losers_rounds):
             suffix = 'F'
-        elif round_num == winners_rounds - 2 or round_num == -total_rounds + 1:
+        elif (round_num == winners_rounds - 2 or
+              round_num == -losers_rounds + 1):
             suffix = 'SF'
-        elif round_num == winners_rounds - 3 or round_num == -total_rounds + 2:
+        elif (round_num == winners_rounds - 3 or
+              round_num == -losers_rounds + 2):
             suffix = 'QF'
 
         return '{}{}'.format(prefix, suffix)
 
-    def get_player_map(self):
-        if self.player_map is not None:
-            return self.player_map
-
+    def set_player_map(self):
         self.player_map = {}
         for p in self.raw_dict['participants']:
             if p['participant'].get('name'):
@@ -117,7 +124,6 @@ class Challonge(object):
             if p['participant'].get('group_player_ids'):
                 for gpid in p['participant']['group_player_ids']:
                     self.player_map[gpid] = player_name
-        return self.player_map
 
     async def report_match(self, match_id: int, winner_id: int,
                            scores: str) -> str:
@@ -135,13 +141,26 @@ class Challonge(object):
         async with self.session.post(url, data=self.api_key_dict) as r:
             return await r.json()
 
-    async def get_open_matches(self):
+    async def top3(self) -> Optional[List[str]]:
+        matches = await self.get_matches()
+        # Check if the tournament is finished.
+        if any(m['state'] != 'complete' for m in matches):
+            return None
+
+        return [
+            matches[-1]['winner'],
+            matches[-1]['loser'],
+            matches[-2]['loser'],
+        ]
+
+    async def get_matches(self):
+        """Fetch latest match data."""
         # sometimes challonge seems to use the "group_player_ids" parameter of
         # "participant" instead of the "id" parameter of "participant" in the
         # "matches" api. not sure exactly when this happens, but the following
         # code checks for both
 
-        # Unlike the other variables, this one needs to be fetched everytime
+        # Unlike the other variables, this one needs to be fetched every time
         # we use it.
         matches = []
         for m in await self.update_data('matches'):
@@ -153,20 +172,32 @@ class Challonge(object):
             state = m['state']
             round_num = m['round']
             underway = m['underway_at'] is not None
+            winner_id = m['winner_id']
+            loser_id = m['loser_id']
 
-            if state != 'open':
+            if player1_id is None or player2_id is None:
                 continue
 
-            player1 = self.get_player_map()[player1_id]
-            player2 = self.get_player_map()[player2_id]
+            player1 = self.player_map[player1_id]
+            player2 = self.player_map[player2_id]
+
+            winner = None
+            loser = None
+            if winner_id is not None and loser_id is not None:
+                winner = self.player_map[winner_id]
+                loser = self.player_map[loser_id]
+
             match = {
+                'id': id,
+                'loser': loser,
                 'player1': player1,
                 'player1_id': player1_id,
                 'player2': player2,
                 'player2_id': player2_id,
-                'id': id,
                 'round': self.round_name(round_num),
+                'state': state,
                 'underway': underway,
+                'winner': winner,
             }
             matches.append(match)
         return matches
@@ -179,17 +210,13 @@ class Challonge(object):
 
 
 async def main():
-    tournament_id = 'mtvmelee-100_amateur'
-    match_id = 163507232
-    winner_id = 88948490
+    # tournament_id = 'mtvmelee-100_amateur'
+    tournament_id = 'djswerve'
+    api_key = os.environ.get('CHALLONGE_KEY')
     async with aiohttp.ClientSession() as session:
-        gar = Challonge(session)
-        await gar.get_raw(tournament_id)
-        # err = await gar.report_match(match_id, winner_id, '2-0')
-        # print(err)
-        await gar.mark_underway(match_id)
-        open_matches = await gar.get_open_matches()
-        print(open_matches)
+        gar = Challonge(api_key, tournament_id, session)
+        await gar.get_raw()
+        print(await gar.top3())
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
