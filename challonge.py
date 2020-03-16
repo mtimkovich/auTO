@@ -15,6 +15,7 @@ URLS = {
 
 MATCH_URL = os.path.join(BASE_CHALLONGE_API_URL, '{}', 'matches', '{}')
 
+
 def extract_id(url):
     """Extract the tournament id of the tournament from its name or URL."""
     match = re.search(r'(\w+)?\.?challonge.com/([^/]+)', url)
@@ -28,6 +29,7 @@ def extract_id(url):
         return tourney
     else:
         return '{}-{}'.format(subdomain, tourney)
+
 
 class Challonge(object):
     def __init__(self, api_key, tournament_id, session):
@@ -67,7 +69,8 @@ class Challonge(object):
         return self.raw_dict['tournament']['tournament']['name'].strip()
 
     def get_date(self):
-        return iso8601.parse_date(self.raw_dict['tournament']['tournament']['created_at'])
+        return iso8601.parse_date(
+                self.raw_dict['tournament']['tournament']['created_at'])
 
     def get_state(self):
         return self.raw_dict['tournament']['tournament']['state']
@@ -108,7 +111,8 @@ class Challonge(object):
             if p['participant'].get('name'):
                 player_name = p['participant']['name'].strip()
             else:
-                player_name = p['participant'].get('username', '<unknown>').strip()
+                player_name = p['participant'].get(
+                        'username', '<unknown>').strip()
             self.player_map[p['participant'].get('id')] = player_name
             if p['participant'].get('group_player_ids'):
                 for gpid in p['participant']['group_player_ids']:
@@ -132,9 +136,10 @@ class Challonge(object):
             return await r.json()
 
     async def get_open_matches(self):
-        # sometimes challonge seems to use the "group_player_ids" parameter of "participant" instead
-        # of the "id" parameter of "participant" in the "matches" api.
-        # not sure exactly when this happens, but the following code checks for both
+        # sometimes challonge seems to use the "group_player_ids" parameter of
+        # "participant" instead of the "id" parameter of "participant" in the
+        # "matches" api. not sure exactly when this happens, but the following
+        # code checks for both
 
         # Unlike the other variables, this one needs to be fetched everytime
         # we use it.
@@ -168,7 +173,8 @@ class Challonge(object):
 
     def get_players(self):
         return [p['participant']['name'].strip()
-                if p['participant']['name'] else p['participant']['username'].strip()
+                if p['participant']['name']
+                else p['participant']['username'].strip()
                 for p in self.raw_dict['participants']]
 
 

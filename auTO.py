@@ -6,6 +6,7 @@ import re
 
 import challonge
 
+
 class Tournament(object):
     """Tournaments are unique to a guild + channel."""
     def __init__(self, ctx, tournament_id, owner, session):
@@ -53,6 +54,7 @@ class Tournament(object):
     @classmethod
     def key(cls, ctx):
         return ctx.guild, ctx.channel
+
 
 class TOCommands(commands.Cog):
     def __init__(self, bot):
@@ -124,7 +126,7 @@ class TOCommands(commands.Cog):
     @auTO.command()
     async def stop(self, ctx):
         self.tourney_stop(ctx)
-        await ctx.send('Goodbye')
+        await ctx.send('Goodbye 😞')
 
     async def end_tournament(self, ctx):
         # TODO: Print the top 3.
@@ -163,7 +165,7 @@ class TOCommands(commands.Cog):
         if tourney is None:
             return
 
-        if not re.match('\d-\d', scores_csv):
+        if not re.match(r'\d-\d', scores_csv):
             await ctx.send('Invalid report. Should be `/auTO report 0-2`')
             return
 
@@ -220,10 +222,10 @@ class TOCommands(commands.Cog):
                                     type=discord.ActivityType.watching)
         await self.bot.change_presence(activity=activity)
 
-
     @commands.Cog.listener()
     async def on_message(self, message):
-        tourney = self.get_tourney(guild=message.guild, channel=message.channel)
+        tourney = self.get_tourney(guild=message.guild,
+                                   channel=message.channel)
         if tourney is None:
             return
 
@@ -235,6 +237,7 @@ class TOCommands(commands.Cog):
               re.search(r'\b[a-f0-9]{8}\b', message.content)):
             await tourney.mark_match_underway(
                     message.mentions[0], message.author)
+
 
 if __name__ == '__main__':
     TOKEN = os.environ.get('DISCORD_TOKEN')
