@@ -101,7 +101,7 @@ class TOCommands(commands.Cog):
     async def start(self, ctx, url: str):
         """Sets tournament URL and start calling matches."""
         if self.get_tourney(ctx) is not None:
-            await ctx.send('Tournament is already in progress')
+            await ctx.send('A tournament is already in progress')
             return
 
         try:
@@ -116,6 +116,7 @@ class TOCommands(commands.Cog):
 
         if tourney.gar.get_state() != 'underway':
             await ctx.send("Tournament hasn't been started yet.")
+            self.tourney_stop(ctx)
             return
 
         start_msg = await ctx.send('Starting {}! {}'.format(
