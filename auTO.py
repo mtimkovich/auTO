@@ -1,10 +1,13 @@
 import aiohttp
 import discord
 from discord.ext import commands
+import logging
 import os
 import re
 
 import challonge
+
+logging.basicConfig(level=logging.INFO)
 
 
 class Tournament(object):
@@ -234,7 +237,7 @@ class TOCommands(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print('>>> auTO has connected to Discord')
+        logging.info('auTO has connected to Discord')
 
         activity = discord.Activity(name='Dolphin',
                                     type=discord.ActivityType.watching)

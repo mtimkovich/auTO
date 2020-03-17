@@ -7,4 +7,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["python", "auTO.py"]
+CMD ["python", "-u", "auTO.py"]
