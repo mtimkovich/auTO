@@ -21,12 +21,12 @@ permission.
 
 Commands are called by typing `/auTO [command]` in the channel.
 
-| Command               | Permissions | Description                                  |
-|-----------------------|-------------|----------------------------------------------|
-| start [CHALLONGE_URL] | TO          | Start TOing the bracket                      |
-| stop                  | TO          | Stop TOing                                   |
-| matches               | All         | Print current matches                        |
-| report 0-2            | Players     | Report a match (reporter's score goes first) |
+| Command                 | Permissions | Description                                  |
+|-------------------------|-------------|----------------------------------------------|
+| `start [CHALLONGE_URL]` | TO          | Start TOing the bracket                      |
+| `stop`                  | TO          | Stop TOing                                   |
+| `matches`               | All         | Print current matches                        |
+| `report 0-2`            | Players     | Report a match (reporter's score goes first) |
 
 ## Running a Tournament
 
