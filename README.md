@@ -1,6 +1,6 @@
 # auTO
 
-**auTO** (pronounced *[Otto](https://www.ssbwiki.com/Smasher:Silent_Wolf)*) is a Discord bot for
+**auTO** (pronounced *[Otto][otto]*) is a Discord bot for
 running Melee netplay tournaments by calling matches and reporting results.
 
 auTO can only manage tournaments ran through [Challonge](https://challonge.com) due to its more
@@ -12,9 +12,10 @@ comprehensive API compared to smash.gg's.
 * Mark matches as in progress when players post netplay codes in the chat.
 * Players can report their own matches without going through the TO.
 
-## Setup
+## Install
 
-TODO: Provide link to invite auTO to their server.
+To add auTO to your Discord [click here][discord]. You'll need the "Managed Server" permission on
+the server you want to add auTO to.
 
 ## How to Use
 
@@ -23,10 +24,15 @@ TODO: Provide link to invite auTO to their server.
 * `/auTO matches` - Print current matches.
 * `/auTO report 0-2` - Report your match.
 
-## Developing
+## Development
 
 Requires Python 3.7+
+
+Alternatively, it can be run using the provided Dockerfile.
 
 ## Author
 
 Max "DJSwerve" Timkovich
+
+[otto][https://www.ssbwiki.com/Smasher:Silent_Wolf]
+[discord][https://discordapp.com/api/oauth2/authorize?client_id=687888371556548680&permissions=10240&scope=bot]
