@@ -14,15 +14,30 @@ comprehensive API compared to smash.gg's.
 
 ## Install
 
-To add auTO to your Discord [click here][discord]. You'll need the "Manage Server" permission on
-the server you want to add auTO to.
+Invite auTO to your Discord server by [clicking here][discord]. You'll need the "Manage Server"
+permission.
 
 ## Discord Commands
 
-* `/auTO start [URL]` - Start TOing the given Challonge bracket.
-* `/auTO stop` - Stop TOing.
-* `/auTO matches` - Print current matches.
-* `/auTO report 0-2` - Report your match.
+Commands are called by typing `/auTO [command]` in the channel.
+
+| Command    | Permissions | Description                                  |
+|------------|-------------|----------------------------------------------|
+| start      | TO          | Start TOing the bracket                      |
+| stop       | TO          | Stop TOing                                   |
+| matches    | All         | Print current matches                        |
+| report 0-2 | Players     | Report a match (reporter's score goes first) |
+
+## Running a Tournament
+
+1. [Invite auTO to your server.][discord]
+2. Create your Challonge bracket and add players.
+    a. NB: The player's tag in the Challonge bracket should match their Discord username *exactly*.
+2. Run `/auTO start [CHALLONGE_URL]` in the channel you want the tournament to run.
+    a. auTO will dm you to ask for your Challonge API key. (This is deleted as soon as the
+       tournament finishes).
+3. auTO will start calling matches!
+4. Players can report their matches using the `/auTO report` command.
 
 ## Development
 
