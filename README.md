@@ -34,5 +34,5 @@ Alternatively, it can be run using the provided Dockerfile.
 
 Max "DJSwerve" Timkovich
 
-[otto][https://www.ssbwiki.com/Smasher:Silent_Wolf]
-[discord][https://discordapp.com/api/oauth2/authorize?client_id=687888371556548680&permissions=10240&scope=bot]
+[otto]: https://www.ssbwiki.com/Smasher:Silent_Wolf
+[discord]: https://discordapp.com/api/oauth2/authorize?client_id=687888371556548680&permissions=10240&scope=bot
