@@ -32,12 +32,12 @@ Commands are called by typing `/auTO [command]` in the channel.
 
 1. [Invite auTO to your server.][discord]
 2. Create your Challonge bracket and add players.
-    a. NB: The player's tag in the Challonge bracket should match their Discord username *exactly*.
-2. Run `/auTO start [CHALLONGE_URL]` in the channel you want the tournament to run.
-    a. auTO will dm you to ask for your Challonge API key. (This is deleted as soon as the
+    1. NB: The player's tag in the Challonge bracket should match their Discord username *exactly*.
+3. Run `/auTO start [CHALLONGE_URL]` in the channel you want the tournament to run.
+    1. auTO will dm you to ask for your Challonge API key. (This is deleted as soon as the
        tournament finishes).
-3. auTO will start calling matches!
-4. Players can report their matches using the `/auTO report` command.
+4. auTO will start calling matches!
+5. Players can report their matches using the `/auTO report` command.
 
 ## Development
 
