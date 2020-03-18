@@ -104,10 +104,8 @@ class TOCommands(commands.Cog):
 
     async def ask_for_challonge_key(self,
                                     owner: discord.Member) -> Optional[str]:
-        """DM the creator for their Challonge key."""
-        dms = owner.dm_channel
-        if dms is None:
-            dms = await owner.create_dm()
+        """DM the TO for their Challonge key."""
+        dms = owner.dm_channel if owner.dm_channel else await owner.create_dm()
         await dms.send("Hey there! To run this tournament for you, I'll need "
                        "your Challonge API key "
                        "(https://challonge.com/settings/developer). "
@@ -116,14 +114,18 @@ class TOCommands(commands.Cog):
         await dms.send("If that's ok with you, respond to this message with "
                        "your Challonge API key, otherwise, with 'NO'.")
 
-        while True:
-            msg = await self.bot.wait_for('message',
-                                          check=lambda m: m.channel == dms)
+        def check(m):
+            return m.channel == dms and m.author == owner
 
-            if msg.content.lower() == 'no':
+        while True:
+            msg = await self.bot.wait_for('message', check=check)
+
+            content = msg.content.strip()
+            if content.lower() == 'no':
+                await dms.send('👍')
                 return None
-            elif re.match(r'[a-z0-9]+$', msg.content, re.I):
-                return msg.content
+            elif re.match(r'[a-z0-9]+$', content, re.I):
+                return content
             else:
                 await dms.send('Invalid API key, try again.')
 
@@ -168,6 +170,8 @@ class TOCommands(commands.Cog):
                                     type=discord.ActivityType.watching)
         await self.bot.change_presence(activity=activity)
 
+        logging.info('Starting tournament {} on {}'.format(
+            tourney.gar.get_name(), tourney.guild.name))
         start_msg = await ctx.send('Starting {}! {}'.format(
             tourney.gar.get_name(), tourney.gar.get_url()))
         await start_msg.pin()
