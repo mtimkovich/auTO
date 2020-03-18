@@ -4,6 +4,7 @@ from discord.ext import commands
 import logging
 import os
 import re
+from typing import Optional
 
 import challonge
 
@@ -12,14 +13,11 @@ logging.basicConfig(level=logging.INFO)
 
 class Tournament(object):
     """Tournaments are unique to a guild + channel."""
-    def __init__(self, ctx, tournament_id, owner, session):
+    def __init__(self, ctx, tournament_id, owner, api_key, session):
         self.guild = ctx.guild
         self.owner = owner
         self.open_matches = []
-        # TODO: Should ask user for their Challonge key.
-        self.challonge_key = os.environ.get('CHALLONGE_KEY')
-        self.gar = challonge.Challonge(
-                self.challonge_key, tournament_id, session)
+        self.gar = challonge.Challonge(api_key, tournament_id, session)
 
     async def get_open_matches(self):
         matches = await self.gar.get_matches()
@@ -77,8 +75,8 @@ class TOCommands(commands.Cog):
             key = Tournament.key(ctx)
         return self.tournament_map.get(key)
 
-    def tourney_start(self, ctx, tournament_id, owner):
-        tourney = Tournament(ctx, tournament_id, owner, self.session)
+    def tourney_start(self, ctx, tournament_id, owner, api_key):
+        tourney = Tournament(ctx, tournament_id, owner, api_key, self.session)
         self.tournament_map[Tournament.key(ctx)] = tourney
         return tourney
 
@@ -104,6 +102,31 @@ class TOCommands(commands.Cog):
         """Send multi-line messages."""
         await ctx.send('\n'.join(the_list))
 
+    async def ask_for_challonge_key(self,
+                                    owner: discord.Member) -> Optional[str]:
+        """DM the creator for their Challonge key."""
+        dms = owner.dm_channel
+        if dms is None:
+            dms = await owner.create_dm()
+        await dms.send("Hey there! To run this tournament for you, I'll need "
+                       "your Challonge API key "
+                       "(https://challonge.com/settings/developer). "
+                       "The key is only used to run the bracket and is "
+                       "deleted after the tournament finishes.")
+        await dms.send("If that's ok with you, respond to this message with "
+                       "your Challonge API key, otherwise, with 'NO'.")
+
+        while True:
+            msg = await self.bot.wait_for('message',
+                                          check=lambda m: m.channel == dms)
+
+            if msg.content.lower() == 'no':
+                return None
+            elif re.match(r'[a-z0-9]+$', msg.content, re.I):
+                return msg.content
+            else:
+                await dms.send('Invalid API key, try again.')
+
     @auTO.command(brief='Challonge URL of tournament')
     async def start(self, ctx, url: str):
         """Sets tournament URL and start calling matches."""
@@ -117,9 +140,20 @@ class TOCommands(commands.Cog):
             await ctx.send(e)
             return
 
+        api_key = await self.ask_for_challonge_key(ctx.author)
+
+        if api_key is None:
+            return
+
         await ctx.trigger_typing()
-        tourney = self.tourney_start(ctx, tournament_id, ctx.author)
-        await tourney.gar.get_raw()
+        tourney = self.tourney_start(ctx, tournament_id, ctx.author, api_key)
+        try:
+            await tourney.gar.get_raw()
+        except aiohttp.client_exceptions.ClientResponseError as e:
+            if e.code == 401:
+                await ctx.author.dm_channel.send('Invalid API Key')
+                self.tourney_stop(ctx)
+                return
 
         if tourney.gar.get_state() == 'pending':
             await ctx.send("Tournament hasn't been started yet.")
@@ -130,6 +164,10 @@ class TOCommands(commands.Cog):
             self.tourney_stop(ctx)
             return
 
+        activity = discord.Activity(name='Dolphin',
+                                    type=discord.ActivityType.watching)
+        await self.bot.change_presence(activity=activity)
+
         start_msg = await ctx.send('Starting {}! {}'.format(
             tourney.gar.get_name(), tourney.gar.get_url()))
         await start_msg.pin()
@@ -137,7 +175,17 @@ class TOCommands(commands.Cog):
 
     @auTO.command()
     async def stop(self, ctx):
+        tourney = self.get_tourney(ctx)
+
+        if tourney is None:
+            return
+        elif ctx.author != tourney.owner:
+            await ctx.send('Sorry, only {} can stop this tournament.'
+                           .format(tourney.mention_user(ctx.author)))
+            return
+
         self.tourney_stop(ctx)
+        await self.bot.change_presence()
         await ctx.send('Goodbye 😞')
 
     async def end_tournament(self, ctx, tourney):
@@ -239,10 +287,6 @@ class TOCommands(commands.Cog):
     async def on_ready(self):
         logging.info('auTO has connected to Discord')
 
-        activity = discord.Activity(name='Dolphin',
-                                    type=discord.ActivityType.watching)
-        await self.bot.change_presence(activity=activity)
-
     @commands.Cog.listener()
     async def on_message(self, message):
         tourney = self.get_tourney(guild=message.guild,
@@ -265,9 +309,6 @@ if __name__ == '__main__':
 
     if TOKEN is None:
         raise RuntimeError('DISCORD_TOKEN is unset')
-
-    # TODO: Make it so only users with correct permissions can start a
-    # tournament.
 
     bot = commands.Bot(command_prefix='/', description='Talk to the TO')
     bot.add_cog(TOCommands(bot))
