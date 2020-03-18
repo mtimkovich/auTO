@@ -14,10 +14,10 @@ comprehensive API compared to smash.gg's.
 
 ## Install
 
-To add auTO to your Discord [click here][discord]. You'll need the "Managed Server" permission on
+To add auTO to your Discord [click here][discord]. You'll need the "Manage Server" permission on
 the server you want to add auTO to.
 
-## How to Use
+## Discord Commands
 
 * `/auTO start [URL]` - Start TOing the given Challonge bracket.
 * `/auTO stop` - Stop TOing.
@@ -27,8 +27,6 @@ the server you want to add auTO to.
 ## Development
 
 Requires Python 3.7+
-
-Alternatively, it can be run using the provided Dockerfile.
 
 ## Author
 
