@@ -100,6 +100,13 @@ class TOCommands(commands.Cog):
         await self.send_list(ctx, help_list)
 
     @auTO.command()
+    async def update_tags(self, ctx):
+        tourney = self.get_tourney(ctx)
+        if tourney is None:
+            return
+        await tourney.gar.update_data('participants')
+
+    @auTO.command()
     async def status(self, ctx):
         tourney = self.get_tourney(ctx)
         if tourney is None:
