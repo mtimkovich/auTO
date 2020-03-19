@@ -95,8 +95,19 @@ class TOCommands(commands.Cog):
             '- `stop` - stop TOing',
             '- `report 0-2` - report a match',
             '- `matches` - print the active matches',
+            '- `status` - show how far along the tournament is',
         ]
         await self.send_list(ctx, help_list)
+
+    @auTO.command()
+    async def status(self, ctx):
+        tourney = self.get_tourney(ctx)
+        if tourney is None:
+            return
+
+        await ctx.trigger_typing()
+        await ctx.send('Tournament is {}% completed.'
+                 .format(await tourney.gar.progress_meter()))
 
     async def send_list(self, ctx, the_list):
         """Send multi-line messages."""

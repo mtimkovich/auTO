@@ -3,8 +3,7 @@
 **auTO** (pronounced *[Otto][otto]*) is a Discord bot for
 running Melee netplay tournaments by calling matches and reporting results.
 
-auTO can only manage tournaments ran through [Challonge](https://challonge.com) due to its more
-comprehensive API compared to smash.gg's.
+auTO can only manage tournaments ran through [Challonge](https://challonge.com) at the moment.
 
 ## Features
 * List active matches.
@@ -26,13 +25,14 @@ Commands are called by typing `/auTO [command]` in the channel.
 | `start [CHALLONGE_URL]` | TO          | Start TOing the bracket                      |
 | `stop`                  | TO          | Stop TOing                                   |
 | `matches`               | All         | Print current matches                        |
+| `status`                | All         | Print how far along the tournament is        |
 | `report 0-2`            | Players     | Report a match (reporter's score goes first) |
 
 ## Running a Tournament
 
 1. [Invite auTO to your server.][discord]
 2. Create your Challonge bracket and add players.
-    1. NB: The player's tag in the Challonge bracket should match their Discord username *exactly*.
+    1. NB: The player's tag in the Challonge bracket must match their Discord username **exactly**.
 3. Run `/auTO start [CHALLONGE_URL]` in the channel you want the tournament to run.
     1. auTO will dm you to ask for your Challonge API key. (This is deleted as soon as the
        tournament finishes).

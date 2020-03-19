@@ -35,8 +35,6 @@ def extract_id(url):
 class Challonge(object):
     def __init__(self, api_key, tournament_id, session):
         self.api_key = api_key
-        if self.api_key is None:
-            raise RuntimeError('CHALLONGE_KEY is unset')
         self.api_key_dict = {'api_key': self.api_key}
         self.tournament_id = tournament_id
         self.session = session
@@ -124,6 +122,10 @@ class Challonge(object):
             if p['participant'].get('group_player_ids'):
                 for gpid in p['participant']['group_player_ids']:
                     self.player_map[gpid] = player_name
+
+    async def progress_meter(self) -> int:
+        tournament = await self.update_data('tournament')
+        return tournament['tournament']['progress_meter']
 
     async def report_match(self, match_id: int, winner_id: int,
                            scores: str) -> str:
@@ -216,7 +218,7 @@ async def main():
     async with aiohttp.ClientSession() as session:
         gar = Challonge(api_key, tournament_id, session)
         await gar.get_raw()
-        print(await gar.top3())
+        print(gar.raw_dict['participants'])
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
