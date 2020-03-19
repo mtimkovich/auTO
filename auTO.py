@@ -39,7 +39,8 @@ class Tournament(object):
 
     def find_match(self, username):
         for match in self.open_matches:
-            if username in [match['player1'], match['player2']]:
+            if username.lower() in map(lower, [match['player1'],
+                                       match['player2']]):
                 return match
         else:
             return None
@@ -48,7 +49,7 @@ class Tournament(object):
         """Gets the user mention string. If the user isn't found, just return
         the username."""
         for member in self.guild.members:
-            if member.display_name == username:
+            if member.display_name.lower() == username.lower():
                 return member.mention
         return '@{}'.format(username)
 
@@ -316,7 +317,7 @@ class TOCommands(commands.Cog):
             return
 
         match_id = match['id']
-        if username == match['player2']:
+        if username.lower() == match['player2'].lower():
             # Scores are reported with player1's score first.
             scores_csv = scores_csv[::-1]
             player1_win = not player1_win
