@@ -107,16 +107,23 @@ class TOCommands(commands.Cog):
 
         await ctx.trigger_typing()
         await ctx.send('Tournament is {}% completed.'
-                 .format(await tourney.gar.progress_meter()))
+                       .format(await tourney.gar.progress_meter()))
 
     async def send_list(self, ctx, the_list):
         """Send multi-line messages."""
         await ctx.send('\n'.join(the_list))
 
+    def is_dm_response(self, owner):
+        return lambda m: m.channel == owner.dm_channel and m.author == owner
+
+    async def get_dms(self, owner):
+        return (owner.dm_channel if owner.dm_channel
+                else await owner.create_dm())
+
     async def ask_for_challonge_key(self,
                                     owner: discord.Member) -> Optional[str]:
         """DM the TO for their Challonge key."""
-        dms = owner.dm_channel if owner.dm_channel else await owner.create_dm()
+        dms = await self.get_dms(owner)
         await dms.send("Hey there! To run this tournament for you, I'll need "
                        "your Challonge API key "
                        "(https://challonge.com/settings/developer). "
@@ -125,11 +132,9 @@ class TOCommands(commands.Cog):
         await dms.send("If that's ok with you, respond to this message with "
                        "your Challonge API key, otherwise, with 'NO'.")
 
-        def check(m):
-            return m.channel == dms and m.author == owner
-
         while True:
-            msg = await self.bot.wait_for('message', check=check)
+            msg = await self.bot.wait_for(
+                    'message', check=self.is_dm_response(owner))
 
             content = msg.content.strip()
             if content.lower() == 'no':
@@ -154,7 +159,6 @@ class TOCommands(commands.Cog):
             return
 
         api_key = await self.ask_for_challonge_key(ctx.author)
-
         if api_key is None:
             return
 
@@ -167,6 +171,8 @@ class TOCommands(commands.Cog):
                 await ctx.author.dm_channel.send('Invalid API Key')
                 self.tourney_stop(ctx)
                 return
+            else:
+                raise e
 
         if tourney.gar.get_state() == 'pending':
             await ctx.send("Tournament hasn't been started yet.")
@@ -204,16 +210,45 @@ class TOCommands(commands.Cog):
         await ctx.send('Goodbye 😞')
 
     async def end_tournament(self, ctx, tourney):
-        top3 = await tourney.gar.top3()
-        top3 = list(map(tourney.mention_user, top3))
+        dms = await self.get_dms(tourney.owner)
+        await dms.send('{} is completed. Finalize? [Y/n]'
+                       .format(tourney.gar.get_name()))
+        msg = await self.bot.wait_for(
+                'message', check=self.is_dm_response(tourney.owner))
+
+        if msg.content.strip().lower() not in ['y', 'yes']:
+            return
+
+        try:
+            await tourney.gar.finalize()
+        except aiohttp.client_exceptions.ClientResponseError as e:
+            if e == 422:
+                # Tournament's already finalized.
+                pass
+            else:
+                raise e
+        await self.results(ctx)
+
+    @auTO.command()
+    async def results(self, ctx):
+        tourney = self.get_tourney(ctx)
+        if tourney is None:
+            return
+
+        top8 = await tourney.gar.get_top8()
+        if top8 is None:
+            return
+
+        winner = tourney.mention_user(top8[0][1][0])
         message = [
             'Congrats to the winner of {}: **{}**!!'.format(
-                tourney.gar.get_name(), top3[0]),
+                tourney.gar.get_name(), winner),
             'We had {} entrants!\n'.format(len(tourney.gar.get_players())),
         ]
 
-        for i, player in enumerate(top3, 1):
-            message.append('{}. {}'.format(i, player))
+        for i, players in top8:
+            players = ' / '.join(map(tourney.mention_user, players))
+            message.append('{}. {}'.format(i, players))
 
         await self.send_list(ctx, message)
         self.tourney_stop(ctx)

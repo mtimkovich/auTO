@@ -1,5 +1,6 @@
 import aiohttp
 import asyncio
+import collections
 import iso8601
 import math
 import os
@@ -43,9 +44,6 @@ class Challonge(object):
         self.raw_dict = None
 
     async def get_raw(self):
-        if self.raw_dict is not None:
-            return self.raw_dict
-
         self.raw_dict = {}
 
         for key in URLS.keys():
@@ -143,17 +141,11 @@ class Challonge(object):
         async with self.session.post(url, data=self.api_key_dict) as r:
             return await r.json()
 
-    async def top3(self) -> Optional[List[str]]:
-        matches = await self.get_matches()
-        # Check if the tournament is finished.
-        if any(m['state'] != 'complete' for m in matches):
-            return None
-
-        return [
-            matches[-1]['winner'],
-            matches[-1]['loser'],
-            matches[-2]['loser'],
-        ]
+    async def finalize(self) -> str:
+        url = os.path.join(BASE_CHALLONGE_API_URL, self.tournament_id,
+                           'finalize.json')
+        async with self.session.post(url, data=self.api_key_dict) as r:
+            return await r.json()
 
     async def get_matches(self):
         """Fetch latest match data."""
@@ -204,21 +196,36 @@ class Challonge(object):
             matches.append(match)
         return matches
 
-    def get_players(self):
-        return [p['participant']['name'].strip()
+    def get_player(self, p):
+        return (p['participant']['name'].strip()
                 if p['participant']['name']
-                else p['participant']['username'].strip()
-                for p in self.raw_dict['participants']]
+                else p['participant']['username'].strip())
+
+    def get_players(self):
+        return [self.get_player(p) for p in self.raw_dict['participants']]
+
+    async def get_top8(self):
+        await self.get_raw()
+        if self.get_state() != 'complete':
+            return None
+
+        top8 = collections.defaultdict(list)
+        for p in self.raw_dict['participants']:
+            rank = p['participant']['final_rank']
+            if rank <= 7:
+                top8[rank].append(self.get_player(p))
+
+        return sorted(top8.items())
 
 
 async def main():
-    # tournament_id = 'mtvmelee-100_amateur'
-    tournament_id = 'djswerve'
+    tournament_id = 'mtvmelee-netplay1'
+    # tournament_id = 'djswerve'
     api_key = os.environ.get('CHALLONGE_KEY')
     async with aiohttp.ClientSession() as session:
         gar = Challonge(api_key, tournament_id, session)
         await gar.get_raw()
-        print(gar.raw_dict['participants'])
+        print(await gar.get_top8())
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
