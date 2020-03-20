@@ -349,16 +349,16 @@ class TOCommands(commands.Cog):
             winner_id = match['player2_id']
 
         await ctx.trigger_typing()
+        await self.add_to_recently_called(tourney, match)
         await tourney.gar.report_match(match_id, winner_id, scores_csv)
         tourney.called_matches.remove(match_id)
-        await self.add_to_recently_called(tourney, match)
         await self.matches(ctx)
 
     async def add_to_recently_called(self, tourney, match):
         """Prevent both players from reporting at the same time."""
         s = set([match['player1'].lower(), match['player2'].lower()])
         tourney.recently_called.update(s)
-        await asyncio.sleep(10)
+        await asyncio.sleep(5)
         tourney.recently_called -= s
 
     @commands.Cog.listener()
