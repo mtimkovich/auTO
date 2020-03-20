@@ -219,13 +219,13 @@ class Challonge(object):
 
 
 async def main():
-    tournament_id = 'mtvmelee-netplay1'
+    tournament_id = 'mtvmelee-netplay2'
     # tournament_id = 'djswerve'
     api_key = os.environ.get('CHALLONGE_KEY')
     async with aiohttp.ClientSession() as session:
         gar = Challonge(api_key, tournament_id, session)
         await gar.get_raw()
-        print(await gar.get_top8())
+        print(gar.raw_dict['participants'])
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()

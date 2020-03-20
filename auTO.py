@@ -1,4 +1,5 @@
 import aiohttp
+import asyncio
 import discord
 from discord.ext import commands
 import logging
@@ -11,6 +12,10 @@ import challonge
 logging.basicConfig(level=logging.INFO)
 
 
+def istrcmp(a: str, b: str) -> bool:
+    return a.lower() == b.lower()
+
+
 class Tournament(object):
     """Tournaments are unique to a guild + channel."""
     def __init__(self, ctx, tournament_id, owner, api_key, session):
@@ -18,6 +23,7 @@ class Tournament(object):
         self.owner = owner
         self.open_matches = []
         self.called_matches = set()
+        self.recently_called = set()
         self.gar = challonge.Challonge(api_key, tournament_id, session)
 
     async def get_open_matches(self):
@@ -50,7 +56,7 @@ class Tournament(object):
         """Gets the user mention string. If the user isn't found, just return
         the username."""
         for member in self.guild.members:
-            if member.display_name.lower() == username.lower():
+            if istrcmp(member.display_name, username):
                 return member.mention
         return username
 
@@ -146,7 +152,7 @@ class TOCommands(commands.Cog):
                     'message', check=self.is_dm_response(owner))
 
             content = msg.content.strip()
-            if content.lower() == 'no':
+            if istrcmp(content, 'no'):
                 await dms.send('👍')
                 return None
             elif re.match(r'[a-z0-9]+$', content, re.I):
@@ -321,13 +327,18 @@ class TOCommands(commands.Cog):
         winner_id = None
         username = ctx.author.display_name
 
+        if username.lower() in tourney.recently_called:
+            await ctx.send('Ignoring potentially duplicate report. Try again '
+                           'in a couple seconds if this is incorrect.')
+            return
+
         match = tourney.find_match(username)
         if match is None:
             await ctx.send('{} not found in current matches'.format(username))
             return
 
         match_id = match['id']
-        if username.lower() == match['player2'].lower():
+        if istrcmp(username, match['player2']):
             # Scores are reported with player1's score first.
             scores_csv = scores_csv[::-1]
             player1_win = not player1_win
@@ -340,7 +351,15 @@ class TOCommands(commands.Cog):
         await ctx.trigger_typing()
         await tourney.gar.report_match(match_id, winner_id, scores_csv)
         tourney.called_matches.remove(match_id)
+        await self.add_to_recently_called(tourney, match)
         await self.matches(ctx)
+
+    async def add_to_recently_called(self, tourney, match):
+        """Prevent both players from reporting at the same time."""
+        s = set([match['player1'].lower(), match['player2'].lower()])
+        tourney.recently_called.update(s)
+        await asyncio.sleep(10)
+        tourney.recently_called -= s
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, err):
