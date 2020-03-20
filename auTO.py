@@ -2,6 +2,7 @@ import aiohttp
 import asyncio
 import discord
 from discord.ext import commands
+import functools
 import logging
 import os
 import re
@@ -124,19 +125,28 @@ class TOCommands(commands.Cog):
         ]
         await self.send_list(ctx, help_list)
 
+    def has_tourney(func):
+        """Decorator that returns if no tourney is set."""
+        @functools.wraps(func)
+        async def wrapper(self, *args, **kwargs):
+            ctx = args[0]
+            tourney = self.get_tourney(ctx)
+            if tourney is None:
+                await ctx.send('No tournament running')
+                return
+            kwargs['tourney'] = tourney
+            return await func(self, *args, **kwargs)
+        return wrapper
+
+
     @auTO.command()
-    async def update_tags(self, ctx):
-        tourney = self.get_tourney(ctx)
-        if tourney is None:
-            return
+    @has_tourney
+    async def update_tags(self, ctx, *, tourney=None):
         await tourney.gar.update_data('participants')
 
     @auTO.command()
-    async def status(self, ctx):
-        tourney = self.get_tourney(ctx)
-        if tourney is None:
-            return
-
+    @has_tourney
+    async def status(self, ctx, *, tourney=None):
         await ctx.trigger_typing()
         await ctx.send('Tournament is {}% completed.'
                        .format(await tourney.gar.progress_meter()))
@@ -228,12 +238,9 @@ class TOCommands(commands.Cog):
         await self.matches(ctx)
 
     @auTO.command()
-    async def stop(self, ctx):
-        tourney = self.get_tourney(ctx)
-
-        if tourney is None:
-            return
-        elif ctx.author != tourney.owner:
+    @has_tourney
+    async def stop(self, ctx, *, tourney=None):
+        if ctx.author != tourney.owner:
             await ctx.send('Sorry, only {} can stop this tournament.'
                            .format(tourney.mention_user(ctx.author)))
             return
@@ -263,11 +270,8 @@ class TOCommands(commands.Cog):
         await self.results(ctx)
 
     @auTO.command()
-    async def results(self, ctx):
-        tourney = self.get_tourney(ctx)
-        if tourney is None:
-            return
-
+    @has_tourney
+    async def results(self, ctx, *, tourney=None):
         top8 = await tourney.gar.get_top8()
         if top8 is None:
             return
@@ -285,15 +289,12 @@ class TOCommands(commands.Cog):
 
         await self.send_list(ctx, message)
         self.tourney_stop(ctx)
+        await self.bot.change_presence()
 
     @auTO.command()
-    async def matches(self, ctx):
+    @has_tourney
+    async def matches(self, ctx, *, tourney=None):
         """Checks for match updates and prints matches to the channel."""
-        tourney = self.get_tourney(ctx)
-        if tourney is None:
-            await ctx.send('No tournament running')
-            return
-
         await ctx.trigger_typing()
         await tourney.get_open_matches()
 
@@ -321,11 +322,8 @@ class TOCommands(commands.Cog):
         await self.send_list(ctx, announcement)
 
     @auTO.command(brief='Report match results')
-    async def report(self, ctx, scores_csv: str):
-        tourney = self.get_tourney(ctx)
-        if tourney is None:
-            return
-
+    @has_tourney
+    async def report(self, ctx, scores_csv: str, *, tourney=None):
         if not re.match(r'\d-\d', scores_csv):
             await ctx.send('Invalid report. Should be `/auTO report 0-2`')
             return
