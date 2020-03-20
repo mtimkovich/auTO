@@ -17,6 +17,7 @@ class Tournament(object):
         self.guild = ctx.guild
         self.owner = owner
         self.open_matches = []
+        self.called_matches = set()
         self.gar = challonge.Challonge(api_key, tournament_id, session)
 
     async def get_open_matches(self):
@@ -39,8 +40,8 @@ class Tournament(object):
 
     def find_match(self, username):
         for match in self.open_matches:
-            if username.lower() in map(lower, [match['player1'],
-                                       match['player2']]):
+            if username.lower() in [match['player1'].lower(),
+                                    match['player2'].lower()]:
                 return match
         else:
             return None
@@ -51,7 +52,7 @@ class Tournament(object):
         for member in self.guild.members:
             if member.display_name.lower() == username.lower():
                 return member.mention
-        return '@{}'.format(username)
+        return username
 
     @classmethod
     def key(cls, ctx):
@@ -167,6 +168,7 @@ class TOCommands(commands.Cog):
             return
 
         api_key = await self.ask_for_challonge_key(ctx.author)
+        # api_key = os.environ.get('CHALLONGE_KEY')
         if api_key is None:
             return
 
@@ -278,9 +280,17 @@ class TOCommands(commands.Cog):
 
         announcement = []
         for m in tourney.open_matches:
-            match = '**{}**: {} vs {}'.format(
-                    m['round'], tourney.mention_user(m['player1']),
-                    tourney.mention_user(m['player2']))
+            player1 = m['player1']
+            player2 = m['player2']
+
+            # We want to only ping players the first time their match is
+            # called.
+            if m['id'] not in tourney.called_matches:
+                player1 = tourney.mention_user(player1)
+                player2 = tourney.mention_user(player2)
+                tourney.called_matches.add(m['id'])
+
+            match = '**{}**: {} vs {}'.format(m['round'], player1, player2)
             if m['underway']:
                 match += ' (Playing)'
             announcement.append(match)
@@ -329,6 +339,7 @@ class TOCommands(commands.Cog):
 
         await ctx.trigger_typing()
         await tourney.gar.report_match(match_id, winner_id, scores_csv)
+        tourney.called_matches.remove(match_id)
         await self.matches(ctx)
 
     @commands.Cog.listener()
