@@ -16,6 +16,10 @@ def istrcmp(a: str, b: str) -> bool:
     return a.lower() == b.lower()
 
 
+def lower(s: str) -> str:
+    return s.lower()
+
+
 class Tournament(object):
     """Tournaments are unique to a guild + channel."""
     def __init__(self, ctx, tournament_id, owner, api_key, session):
@@ -46,8 +50,8 @@ class Tournament(object):
 
     def find_match(self, username):
         for match in self.open_matches:
-            if username.lower() in [match['player1'].lower(),
-                                    match['player2'].lower()]:
+            if username.lower() in map(lower, [match['player1'],
+                                       match['player2']]):
                 return match
         else:
             return None
@@ -59,6 +63,19 @@ class Tournament(object):
             if istrcmp(member.display_name, username):
                 return member.mention
         return username
+
+    async def report_match(self, match, winner_id, scores_csv):
+        await self.add_to_recently_called(match)
+        await self.gar.report_match(
+                match['id'], winner_id, scores_csv)
+        self.called_matches.remove(match['id'])
+
+    async def add_to_recently_called(self, match):
+        """Prevent both players from reporting at the same time."""
+        s = set(map(lower, [match['player1'], match['player2']]))
+        self.recently_called.update(s)
+        await asyncio.sleep(5)
+        self.recently_called -= s
 
     @classmethod
     def key(cls, ctx):
@@ -349,17 +366,8 @@ class TOCommands(commands.Cog):
             winner_id = match['player2_id']
 
         await ctx.trigger_typing()
-        await self.add_to_recently_called(tourney, match)
-        await tourney.gar.report_match(match_id, winner_id, scores_csv)
-        tourney.called_matches.remove(match_id)
+        await tourney.report_match(match, winner_id, scores_csv)
         await self.matches(ctx)
-
-    async def add_to_recently_called(self, tourney, match):
-        """Prevent both players from reporting at the same time."""
-        s = set([match['player1'].lower(), match['player2'].lower()])
-        tourney.recently_called.update(s)
-        await asyncio.sleep(5)
-        tourney.recently_called -= s
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, err):
