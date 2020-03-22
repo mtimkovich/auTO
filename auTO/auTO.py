@@ -8,7 +8,7 @@ import os
 import re
 from typing import Optional
 
-import challonge
+from . import challonge
 
 logging.basicConfig(level=logging.INFO)
 
@@ -433,7 +433,7 @@ class TOCommands(commands.Cog):
                     message.mentions[0], message.author)
 
 
-if __name__ == '__main__':
+def main():
     TOKEN = os.environ.get('DISCORD_TOKEN')
 
     if TOKEN is None:
@@ -443,3 +443,7 @@ if __name__ == '__main__':
                        case_insensitive=True)
     bot.add_cog(TOCommands(bot))
     bot.run(TOKEN)
+
+
+if __name__ == '__main__':
+    main()
