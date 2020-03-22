@@ -65,18 +65,21 @@ class Tournament(object):
                 return member.mention
         return username
 
-    async def report_match(self, match, winner_id, scores_csv):
-        await self.add_to_recently_called(match)
+    async def report_match(self, match, winner_id, reporter, scores_csv):
+        await self.add_to_recently_called(match, reporter)
         await self.gar.report_match(
                 match['id'], winner_id, scores_csv)
         self.called_matches.remove(match['id'])
 
-    async def add_to_recently_called(self, match):
+    async def add_to_recently_called(self, match, reporter):
         """Prevent both players from reporting at the same time."""
-        s = set(map(lower, [match['player1'], match['player2']]))
-        self.recently_called.update(s)
+        if istrcmp(match['player1'], reporter):
+            other = match['player2']
+        else:
+            other = match['player1']
+        self.recently_called.add(other)
         await asyncio.sleep(5)
-        self.recently_called -= s
+        self.recently_called.remove(other)
 
     @classmethod
     def key(cls, ctx):
@@ -364,7 +367,7 @@ class TOCommands(commands.Cog):
             winner_id = match['player2_id']
 
         await ctx.trigger_typing()
-        await tourney.report_match(match, winner_id, scores_csv)
+        await tourney.report_match(match, winner_id, username, scores_csv)
         await self.matches(ctx)
 
     @commands.Cog.listener()
