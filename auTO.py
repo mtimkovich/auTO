@@ -109,7 +109,7 @@ class TOCommands(commands.Cog):
     def tourney_stop(self, ctx):
         self.tournament_map.pop(Tournament.key(ctx))
 
-    @commands.group()
+    @commands.group(case_insensitive=True)
     async def auTO(self, ctx):
         if ctx.invoked_subcommand is None:
             await ctx.send('Use `/auTO help` for options')
@@ -404,6 +404,7 @@ if __name__ == '__main__':
     if TOKEN is None:
         raise RuntimeError('DISCORD_TOKEN is unset')
 
-    bot = commands.Bot(command_prefix='/', description='Talk to the TO')
+    bot = commands.Bot(command_prefix='/', description='Talk to the TO',
+                       case_insensitive=True)
     bot.add_cog(TOCommands(bot))
     bot.run(TOKEN)
