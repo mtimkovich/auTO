@@ -9,6 +9,7 @@ from typing import Optional
 import yaml
 
 from . import challonge
+from . config import config
 
 logging.basicConfig(level=logging.INFO)
 
@@ -230,9 +231,11 @@ class TOCommands(commands.Cog):
             await ctx.send(e)
             return
 
-        api_key = await self.ask_for_challonge_key(ctx.author)
-        if api_key is None:
-            return
+        # Useful for debugging.
+        if config.get('CHALLONGE_KEY') is None:
+            api_key = await self.ask_for_challonge_key(ctx.author)
+            if api_key is None:
+                return
 
         tourney = self.tourney_start(ctx, tournament_id, ctx.author, api_key)
         try:
@@ -433,18 +436,10 @@ class TOCommands(commands.Cog):
 
 
 def main():
-    with open('config.yml') as f:
-        conf = yaml.safe_load(f)
-
-    TOKEN = conf.get('DISCORD_TOKEN')
-
-    if TOKEN is None:
-        raise RuntimeError('DISCORD_TOKEN is unset')
-
     bot = commands.Bot(command_prefix='/', description='Talk to the TO',
                        case_insensitive=True)
     bot.add_cog(TOCommands(bot))
-    bot.run(TOKEN)
+    bot.run(config.get('DISCORD_TOKEN'))
 
 
 if __name__ == '__main__':
