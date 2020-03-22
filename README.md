@@ -50,7 +50,7 @@ Commands are called by typing `/auTO [command]` in the channel.
 ## Bug/Feature Requests
 
 * [File an issue!](https://github.com/mtimkovich/auTO/issues)
-* Message me on Twitter [@DJSwerveGG][twitter]
+* Message me on Twitter - [@DJSwerveGG][twitter]
 
 ## Development
 
