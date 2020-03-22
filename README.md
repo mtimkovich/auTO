@@ -5,6 +5,12 @@ running Melee netplay tournaments by calling matches and reporting results.
 
 auTO can only manage tournaments ran through [Challonge](https://challonge.com) at the moment.
 
+![auTO Preview][preview]
+
+## Used By
+* 6 Buffer Saturday
+* MTV Melee
+
 ## Features
 * List active matches.
 * Ping players when it's time for them to play.
@@ -52,12 +58,12 @@ Requires Python 3.7+
 ## Changelog
 
 ### 1.2
-- Check that all players in in the server before starting.
-- Make commands case-insensitive.
+* Check that all players in in the server before starting.
+* Make commands case-insensitive.
 
 ### 1.1
-- Only ping for new matches.
-- Add timeout between reports to avoid duplicates.
+* Only ping for new matches.
+* Add timeout between reports to avoid duplicates.
 
 ## Author
 
@@ -65,3 +71,4 @@ Max "DJSwerve" Timkovich
 
 [otto]: https://www.ssbwiki.com/Smasher:Silent_Wolf
 [invite]: https://discordapp.com/api/oauth2/authorize?client_id=687888371556548680&permissions=10240&scope=bot
+[preview]: https://raw.githubusercontent.com/mtimkovich/auTO/readme/img/auTO_preview.png
