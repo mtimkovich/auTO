@@ -4,9 +4,9 @@ import discord
 from discord.ext import commands
 import functools
 import logging
-import os
 import re
 from typing import Optional
+import yaml
 
 from . import challonge
 
@@ -231,7 +231,6 @@ class TOCommands(commands.Cog):
             return
 
         api_key = await self.ask_for_challonge_key(ctx.author)
-        # api_key = os.environ.get('CHALLONGE_KEY')
         if api_key is None:
             return
 
@@ -434,7 +433,10 @@ class TOCommands(commands.Cog):
 
 
 def main():
-    TOKEN = os.environ.get('DISCORD_TOKEN')
+    with open('config.yml') as f:
+        conf = yaml.safe_load(f)
+
+    TOKEN = conf.get('DISCORD_TOKEN')
 
     if TOKEN is None:
         raise RuntimeError('DISCORD_TOKEN is unset')

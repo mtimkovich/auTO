@@ -15,6 +15,7 @@ setup(
     install_requires=[
         'discord.py >= 1.3.2',
         'iso8601',
+        'pyyaml',
     ],
     setup_requires=['wheel'],
     python_requires='>=3.7',

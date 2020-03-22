@@ -1,4 +1,4 @@
 env/
-run.sh
 *.swp
 __pycache__
+config.yml
