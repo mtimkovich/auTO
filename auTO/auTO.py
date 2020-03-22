@@ -143,13 +143,14 @@ class TOCommands(commands.Cog):
     @commands.group(case_insensitive=True)
     async def auTO(self, ctx):
         if ctx.invoked_subcommand is None:
-            await ctx.send('Use `/auTO help` for options')
+            await ctx.send('Use `!auto help` for options')
 
     @auTO.command()
     async def help(self, ctx):
         help_list = [
             '- `start [URL]` - start TOing',
             '- `stop` - stop TOing',
+            '- `update_tags` - get the latest Challonge tags',
             '- `report 0-2` - report a match',
             '- `matches` - print the active matches',
             '- `status` - show how far along the tournament is',
@@ -172,6 +173,8 @@ class TOCommands(commands.Cog):
     @auTO.command()
     @has_tourney
     async def update_tags(self, ctx, *, tourney=None):
+        if ctx.author != tourney.owner:
+            return
         await tourney.gar.update_data('participants')
 
     @auTO.command()
@@ -362,7 +365,7 @@ class TOCommands(commands.Cog):
     @has_tourney
     async def report(self, ctx, scores_csv: str, *, tourney=None):
         if not re.match(r'\d-\d', scores_csv):
-            await ctx.send('Invalid report. Should be `/auTO report 0-2`')
+            await ctx.send('Invalid report. Should be `!auto report 0-2`')
             return
 
         scores = [int(n) for n in scores_csv.split('-')]
@@ -436,7 +439,7 @@ class TOCommands(commands.Cog):
 
 
 def main():
-    bot = commands.Bot(command_prefix='/', description='Talk to the TO',
+    bot = commands.Bot(command_prefix='!', description='Talk to the TO',
                        case_insensitive=True)
     bot.add_cog(TOCommands(bot))
     bot.run(config.get('DISCORD_TOKEN'))

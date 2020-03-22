@@ -25,23 +25,25 @@ permission.
 1. [Invite auTO to your server.][invite]
 2. Create your Challonge bracket and add players.
     1. NB: The player's tag in the Challonge bracket **must be** their Discord username.
-3. Run `/auTO start [CHALLONGE_URL]` in the channel you want the tournament to run.
+3. Run `!auTO start [CHALLONGE_URL]` in the channel you want the tournament to run.
     1. auTO will dm you to ask for your Challonge API key. (This is deleted as soon as the
        tournament finishes.)
 4. auTO will start calling matches!
-5. Players can report their matches using the `/auTO report` command.
+5. Players can report their matches using the `!auTO report` command.
 
 ## Discord Commands
 
-Commands are called by typing `/auTO [command]` in the channel.
+Commands are called by typing `!auTO [command]` in the channel.
 
 | Command                 | Permissions | Description                                  |
 |-------------------------|-------------|----------------------------------------------|
 | `start [CHALLONGE_URL]` | TO          | Start TOing the bracket                      |
 | `stop`                  | TO          | Stop TOing                                   |
+| `update_tags`           | TO          | Get the latest tags from Challonge           |
+| `report 0-2`            | Players     | Report a match (reporter's score goes first) |
 | `matches`               | All         | Print current matches                        |
 | `status`                | All         | Print how far along the tournament is        |
-| `report 0-2`            | Players     | Report a match (reporter's score goes first) |
+| `help`                  | All         | Print the list of commands                   |
 
 ## Used By
 * 6 Buffer Saturday
@@ -57,6 +59,10 @@ Commands are called by typing `/auTO [command]` in the channel.
 Requires Python 3.7+
 
 ## Changelog
+
+### 1.3
+* Use setuptools for package.
+* Use `!` as prefix to be more familiar to Twitch ~~nerds~~ users.
 
 ### 1.2
 * Check that all players in in the server before starting.
