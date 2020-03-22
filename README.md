@@ -1,15 +1,11 @@
 # auTO
 
-**auTO** (pronounced *[Otto][otto]*) is a Discord bot for
-running Melee netplay tournaments by calling matches and reporting results.
-
-auTO can only manage tournaments ran through [Challonge](https://challonge.com) at the moment.
+**auTO** (pronounced *[Otto][otto]*) is a Discord bot for running Melee netplay tournaments by
+calling matches and reporting results.
 
 ![auTO Preview][preview]
 
-## Used By
-* 6 Buffer Saturday
-* MTV Melee
+auTO can only manage tournaments ran through [Challonge](https://challonge.com) at the moment.
 
 ## Features
 * List active matches.
@@ -47,6 +43,10 @@ Commands are called by typing `/auTO [command]` in the channel.
 | `status`                | All         | Print how far along the tournament is        |
 | `report 0-2`            | Players     | Report a match (reporter's score goes first) |
 
+## Used By
+* 6 Buffer Saturday
+* MTV Melee
+
 ## Bug/Feature Requests
 
 [File an issue!](https://github.com/mtimkovich/auTO/issues)
@@ -71,4 +71,4 @@ Max "DJSwerve" Timkovich
 
 [otto]: https://www.ssbwiki.com/Smasher:Silent_Wolf
 [invite]: https://discordapp.com/api/oauth2/authorize?client_id=687888371556548680&permissions=10240&scope=bot
-[preview]: https://raw.githubusercontent.com/mtimkovich/auTO/readme/img/auTO_preview.png
+[preview]: https://raw.githubusercontent.com/mtimkovich/auTO/master/img/auTO_preview.png
