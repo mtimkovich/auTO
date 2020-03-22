@@ -26,6 +26,10 @@ async def send_list(ctx, the_list):
     await ctx.send('\n'.join(the_list))
 
 
+async def get_dms(owner):
+    return (owner.dm_channel if owner.dm_channel else await owner.create_dm())
+
+
 class Tournament(object):
     """Tournaments are unique to a guild + channel."""
     def __init__(self, ctx, tournament_id, owner, api_key, session):
@@ -75,29 +79,33 @@ class Tournament(object):
         return any(istrcmp(m.display_name, username)
                    for m in self.guild.members)
 
-    async def report_match(self, match, winner_id, scores_csv):
-        await self.add_to_recently_called(match)
+    async def report_match(self, match, winner_id, reporter, scores_csv):
+        await self.add_to_recently_called(match, reporter)
         await self.gar.report_match(
                 match['id'], winner_id, scores_csv)
         self.called_matches.remove(match['id'])
 
-    async def add_to_recently_called(self, match):
+    async def add_to_recently_called(self, match, reporter):
         """Prevent both players from reporting at the same time."""
-        s = set(map(lower, [match['player1'], match['player2']]))
-        self.recently_called.update(s)
+        if istrcmp(match['player1'], reporter):
+            other = match['player2']
+        else:
+            other = match['player1']
+        self.recently_called.add(other)
         await asyncio.sleep(5)
-        self.recently_called -= s
+        self.recently_called.remove(other)
 
-    async def missing_tags(self, ctx) -> bool:
+    async def missing_tags(self, owner) -> bool:
         """Check the participants list for players not on the server."""
+        dms = await get_dms(owner)
         missing = [player for player in self.gar.get_players()
                    if not self.has_user(player)]
         if not missing:
             return False
         message = ['Missing Discord accounts for the following players:']
-        message += '\n'.join('- {}'.format(missing))
-        message.append('Continue anyway? [Y/n]')
-        await send_list(message)
+        for p in missing:
+            message.append('- {}'.format(p))
+        await send_list(dms, message)
         return True
 
     @classmethod
@@ -131,7 +139,7 @@ class TOCommands(commands.Cog):
     def tourney_stop(self, ctx):
         self.tournament_map.pop(Tournament.key(ctx))
 
-    @commands.group()
+    @commands.group(case_insensitive=True)
     async def auTO(self, ctx):
         if ctx.invoked_subcommand is None:
             await ctx.send('Use `/auTO help` for options')
@@ -172,17 +180,13 @@ class TOCommands(commands.Cog):
         await ctx.send('Tournament is {}% completed.'
                        .format(await tourney.gar.progress_meter()))
 
-    def is_dm_response(self):
-        return lambda m: m.channel == owner.dm_channel and m.author != self.bot
-
-    async def get_dms(self, owner):
-        return (owner.dm_channel if owner.dm_channel
-                else await owner.create_dm())
+    def is_dm_response(self, owner):
+        return lambda m: m.channel == owner.dm_channel and m.author == owner
 
     async def ask_for_challonge_key(self,
                                     owner: discord.Member) -> Optional[str]:
         """DM the TO for their Challonge key."""
-        dms = await self.get_dms(owner)
+        dms = await get_dms(owner)
         await dms.send("Hey there! To run this tournament for you, I'll need "
                        "your Challonge API key "
                        "(https://challonge.com/settings/developer). "
@@ -193,7 +197,7 @@ class TOCommands(commands.Cog):
 
         while True:
             msg = await self.bot.wait_for(
-                    'message', check=self.is_dm_response())
+                    'message', check=self.is_dm_response(owner))
 
             content = msg.content.strip()
             if istrcmp(content, 'no'):
@@ -205,11 +209,13 @@ class TOCommands(commands.Cog):
                 await dms.send('Invalid API key, try again.')
 
     async def confirm(self, ctx, question) -> bool:
-        dms = await self.get_dms(ctx.author)
-        await ctx.send('{} [Y/n]'.format(question))
-        msg = await self.bot.wait_for('message', check=self.is_dm_response())
+        """DM the user a yes/no question."""
+        dms = await get_dms(ctx.author)
+        await dms.send('{} [Y/n]'.format(question))
+        msg = await self.bot.wait_for(
+                'message', check=self.is_dm_response(ctx.author))
 
-        return msg.content.strip().lower() not in ['y', 'yes']
+        return msg.content.strip().lower() in ['y', 'yes']
 
     @auTO.command(brief='Challonge URL of tournament')
     async def start(self, ctx, url: str):
@@ -224,12 +230,11 @@ class TOCommands(commands.Cog):
             await ctx.send(e)
             return
 
-        # api_key = await self.ask_for_challonge_key(ctx.author)
-        api_key = os.environ.get('CHALLONGE_KEY')
+        api_key = await self.ask_for_challonge_key(ctx.author)
+        # api_key = os.environ.get('CHALLONGE_KEY')
         if api_key is None:
             return
 
-        await ctx.trigger_typing()
         tourney = self.tourney_start(ctx, tournament_id, ctx.author, api_key)
         try:
             await tourney.gar.get_raw()
@@ -250,7 +255,7 @@ class TOCommands(commands.Cog):
             self.tourney_stop(ctx)
             return
 
-        has_missing = await tourney.missing_tags(ctx)
+        has_missing = await tourney.missing_tags(ctx.author)
         if has_missing:
             confirm = await self.confirm(ctx, 'Continue anyway?')
             if confirm:
@@ -263,6 +268,7 @@ class TOCommands(commands.Cog):
                                     type=discord.ActivityType.watching)
         await self.bot.change_presence(activity=activity)
 
+        await ctx.trigger_typing()
         logging.info('Starting tournament {} on {}'.format(
             tourney.gar.get_name(), tourney.guild.name))
         start_msg = await ctx.send('Starting {}! {}'.format(
@@ -393,7 +399,7 @@ class TOCommands(commands.Cog):
             winner_id = match['player2_id']
 
         await ctx.trigger_typing()
-        await tourney.report_match(match, winner_id, scores_csv)
+        await tourney.report_match(match, winner_id, username, scores_csv)
         await self.matches(ctx)
 
     @commands.Cog.listener()
@@ -433,6 +439,7 @@ if __name__ == '__main__':
     if TOKEN is None:
         raise RuntimeError('DISCORD_TOKEN is unset')
 
-    bot = commands.Bot(command_prefix='/', description='Talk to the TO')
+    bot = commands.Bot(command_prefix='/', description='Talk to the TO',
+                       case_insensitive=True)
     bot.add_cog(TOCommands(bot))
     bot.run(TOKEN)
