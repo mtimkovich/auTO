@@ -49,7 +49,8 @@ Commands are called by typing `/auTO [command]` in the channel.
 
 ## Bug/Feature Requests
 
-[File an issue!](https://github.com/mtimkovich/auTO/issues)
+* [File an issue!](https://github.com/mtimkovich/auTO/issues)
+* Message me on Twitter [@DJSwerveGG][twitter]
 
 ## Development
 
@@ -72,3 +73,4 @@ Max "DJSwerve" Timkovich
 [otto]: https://www.ssbwiki.com/Smasher:Silent_Wolf
 [invite]: https://discordapp.com/api/oauth2/authorize?client_id=687888371556548680&permissions=10240&scope=bot
 [preview]: https://raw.githubusercontent.com/mtimkovich/auTO/master/img/auTO_preview.png
+[twitter]: https://twitter.com/DJSwerveGG
