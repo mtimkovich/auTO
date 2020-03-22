@@ -41,6 +41,10 @@ Commands are called by typing `/auTO [command]` in the channel.
 | `status`                | All         | Print how far along the tournament is        |
 | `report 0-2`            | Players     | Report a match (reporter's score goes first) |
 
+## Bug/Feature Requests
+
+[File an issue!](https://github.com/mtimkovich/auTO/issues)
+
 ## Development
 
 Requires Python 3.7+
