@@ -1,7 +1,6 @@
 import aiohttp
 import asyncio
 import collections
-import iso8601
 import math
 import os
 import re
@@ -66,10 +65,6 @@ class Challonge(object):
 
     def get_name(self) -> str:
         return self.raw_dict['tournament']['tournament']['name'].strip()
-
-    def get_date(self):
-        return iso8601.parse_date(
-                self.raw_dict['tournament']['tournament']['created_at'])
 
     def get_state(self) -> str:
         return self.raw_dict['tournament']['tournament']['state']
