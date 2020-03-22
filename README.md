@@ -25,7 +25,7 @@ permission.
     1. NB: The player's tag in the Challonge bracket **must be** their Discord username.
 3. Run `/auTO start [CHALLONGE_URL]` in the channel you want the tournament to run.
     1. auTO will dm you to ask for your Challonge API key. (This is deleted as soon as the
-       tournament finishes).
+       tournament finishes.)
 4. auTO will start calling matches!
 5. Players can report their matches using the `/auTO report` command.
 
