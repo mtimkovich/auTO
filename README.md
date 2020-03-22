@@ -15,12 +15,12 @@ auTO can only manage tournaments ran through [Challonge](https://challonge.com) 
 
 ## Install
 
-Invite auTO to your Discord server by [clicking here][discord]. You'll need the "Manage Server"
+Invite auTO to your Discord server by [clicking here][invite]. You'll need the "Manage Server"
 permission.
 
 ## Running a Tournament
 
-1. [Invite auTO to your server.][discord]
+1. [Invite auTO to your server.][invite]
 2. Create your Challonge bracket and add players.
     1. NB: The player's tag in the Challonge bracket **must be** their Discord username.
 3. Run `/auTO start [CHALLONGE_URL]` in the channel you want the tournament to run.
@@ -45,9 +45,19 @@ Commands are called by typing `/auTO [command]` in the channel.
 
 Requires Python 3.7+
 
+## Changelog
+
+### 1.2
+- Check that all players in in the server before starting.
+- Make commands case-insensitive.
+
+### 1.1
+- Only ping for new matches.
+- Add timeout between reports to avoid duplicates.
+
 ## Author
 
 Max "DJSwerve" Timkovich
 
 [otto]: https://www.ssbwiki.com/Smasher:Silent_Wolf
-[discord]: https://discordapp.com/api/oauth2/authorize?client_id=687888371556548680&permissions=10240&scope=bot
+[invite]: https://discordapp.com/api/oauth2/authorize?client_id=687888371556548680&permissions=10240&scope=bot

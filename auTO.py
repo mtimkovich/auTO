@@ -21,6 +21,11 @@ def lower(s: str) -> str:
     return s.lower()
 
 
+async def send_list(ctx, the_list):
+    """Send multi-line messages."""
+    await ctx.send('\n'.join(the_list))
+
+
 class Tournament(object):
     """Tournaments are unique to a guild + channel."""
     def __init__(self, ctx, tournament_id, owner, api_key, session):
@@ -65,6 +70,11 @@ class Tournament(object):
                 return member.mention
         return username
 
+    def has_user(self, username: str) -> bool:
+        """Finds if username is on the server."""
+        return any(istrcmp(m.display_name, username)
+                   for m in self.guild.members)
+
     async def report_match(self, match, winner_id, scores_csv):
         await self.add_to_recently_called(match)
         await self.gar.report_match(
@@ -77,6 +87,18 @@ class Tournament(object):
         self.recently_called.update(s)
         await asyncio.sleep(5)
         self.recently_called -= s
+
+    async def missing_tags(self, ctx) -> bool:
+        """Check the participants list for players not on the server."""
+        missing = [player for player in self.gar.get_players()
+                   if not self.has_user(player)]
+        if not missing:
+            return False
+        message = ['Missing Discord accounts for the following players:']
+        message += '\n'.join('- {}'.format(missing))
+        message.append('Continue anyway? [Y/n]')
+        await send_list(message)
+        return True
 
     @classmethod
     def key(cls, ctx):
@@ -123,7 +145,7 @@ class TOCommands(commands.Cog):
             '- `matches` - print the active matches',
             '- `status` - show how far along the tournament is',
         ]
-        await self.send_list(ctx, help_list)
+        await send_list(ctx, help_list)
 
     def has_tourney(func):
         """Decorator that returns if no tourney is set."""
@@ -138,7 +160,6 @@ class TOCommands(commands.Cog):
             return await func(self, *args, **kwargs)
         return wrapper
 
-
     @auTO.command()
     @has_tourney
     async def update_tags(self, ctx, *, tourney=None):
@@ -151,12 +172,8 @@ class TOCommands(commands.Cog):
         await ctx.send('Tournament is {}% completed.'
                        .format(await tourney.gar.progress_meter()))
 
-    async def send_list(self, ctx, the_list):
-        """Send multi-line messages."""
-        await ctx.send('\n'.join(the_list))
-
-    def is_dm_response(self, owner):
-        return lambda m: m.channel == owner.dm_channel and m.author == owner
+    def is_dm_response(self):
+        return lambda m: m.channel == owner.dm_channel and m.author != self.bot
 
     async def get_dms(self, owner):
         return (owner.dm_channel if owner.dm_channel
@@ -176,7 +193,7 @@ class TOCommands(commands.Cog):
 
         while True:
             msg = await self.bot.wait_for(
-                    'message', check=self.is_dm_response(owner))
+                    'message', check=self.is_dm_response())
 
             content = msg.content.strip()
             if istrcmp(content, 'no'):
@@ -186,6 +203,13 @@ class TOCommands(commands.Cog):
                 return content
             else:
                 await dms.send('Invalid API key, try again.')
+
+    async def confirm(self, ctx, question) -> bool:
+        dms = await self.get_dms(ctx.author)
+        await ctx.send('{} [Y/n]'.format(question))
+        msg = await self.bot.wait_for('message', check=self.is_dm_response())
+
+        return msg.content.strip().lower() not in ['y', 'yes']
 
     @auTO.command(brief='Challonge URL of tournament')
     async def start(self, ctx, url: str):
@@ -200,8 +224,8 @@ class TOCommands(commands.Cog):
             await ctx.send(e)
             return
 
-        api_key = await self.ask_for_challonge_key(ctx.author)
-        # api_key = os.environ.get('CHALLONGE_KEY')
+        # api_key = await self.ask_for_challonge_key(ctx.author)
+        api_key = os.environ.get('CHALLONGE_KEY')
         if api_key is None:
             return
 
@@ -225,6 +249,15 @@ class TOCommands(commands.Cog):
             await ctx.send("Tournament has already finished.")
             self.tourney_stop(ctx)
             return
+
+        has_missing = await tourney.missing_tags(ctx)
+        if has_missing:
+            confirm = await self.confirm(ctx, 'Continue anyway?')
+            if confirm:
+                await self.update_tags(ctx)
+            else:
+                self.tourney_stop(ctx)
+                return
 
         activity = discord.Activity(name='Dolphin',
                                     type=discord.ActivityType.watching)
@@ -250,13 +283,9 @@ class TOCommands(commands.Cog):
         await ctx.send('Goodbye 😞')
 
     async def end_tournament(self, ctx, tourney):
-        dms = await self.get_dms(tourney.owner)
-        await dms.send('{} is completed. Finalize? [Y/n]'
-                       .format(tourney.gar.get_name()))
-        msg = await self.bot.wait_for(
-                'message', check=self.is_dm_response(tourney.owner))
-
-        if msg.content.strip().lower() not in ['y', 'yes']:
+        confirm = await self.confirm(ctx, '{} is completed. Finalize?'
+                                     .format(tourney.gar.get_name()))
+        if not confirm:
             return
 
         try:
@@ -287,7 +316,7 @@ class TOCommands(commands.Cog):
             players = ' / '.join(map(tourney.mention_user, players))
             message.append('{}. {}'.format(i, players))
 
-        await self.send_list(ctx, message)
+        await send_list(ctx, message)
         self.tourney_stop(ctx)
         await self.bot.change_presence()
 
@@ -319,7 +348,7 @@ class TOCommands(commands.Cog):
                 match += ' (Playing)'
             announcement.append(match)
 
-        await self.send_list(ctx, announcement)
+        await send_list(ctx, announcement)
 
     @auTO.command(brief='Report match results')
     @has_tourney
