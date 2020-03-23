@@ -285,8 +285,8 @@ class TOCommands(commands.Cog):
     @has_tourney
     async def stop(self, ctx, *, tourney=None):
         if ctx.author != tourney.owner:
-            await ctx.send('Sorry, only {} can stop this tournament.'
-                           .format(tourney.mention_user(ctx.author)))
+            await ctx.send('Sorry, only {} can stop this tournament.'.format(
+                tourney.mention_user(ctx.author.display_name)))
             return
 
         self.tourney_stop(ctx)
