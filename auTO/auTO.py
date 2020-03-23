@@ -18,10 +18,6 @@ def istrcmp(a: str, b: str) -> bool:
     return a.lower() == b.lower()
 
 
-def lower(s: str) -> str:
-    return s.lower()
-
-
 async def send_list(ctx, the_list):
     """Send multi-line messages."""
     await ctx.send('\n'.join(the_list))
@@ -33,9 +29,10 @@ async def get_dms(owner):
 
 class Tournament(object):
     """Tournaments are unique to a guild + channel."""
-    def __init__(self, ctx, tournament_id, owner, api_key, session):
+    def __init__(self, ctx, tournament_id, api_key, session):
         self.guild = ctx.guild
-        self.owner = owner
+        self.channel = ctx.channel
+        self.owner = ctx.author
         self.open_matches = []
         self.called_matches = set()
         self.recently_called = set()
@@ -61,7 +58,7 @@ class Tournament(object):
 
     def find_match(self, username):
         for match in self.open_matches:
-            if username.lower() in map(lower, [match['player1'],
+            if username.lower() in map(lambda s: s.lower(), [match['player1'],
                                        match['player2']]):
                 return match
         else:
@@ -132,8 +129,8 @@ class TOCommands(commands.Cog):
             key = Tournament.key(ctx)
         return self.tournament_map.get(key)
 
-    def tourney_start(self, ctx, tournament_id, owner, api_key):
-        tourney = Tournament(ctx, tournament_id, owner, api_key, self.session)
+    def tourney_start(self, ctx, tournament_id, api_key):
+        tourney = Tournament(ctx, tournament_id, api_key, self.session)
         self.tournament_map[Tournament.key(ctx)] = tourney
         return tourney
 
@@ -170,11 +167,25 @@ class TOCommands(commands.Cog):
             return await func(self, *args, **kwargs)
         return wrapper
 
+    def is_to(func):
+        """Decorator that ensures caller is owner, TO, or admin."""
+        @functools.wraps(func)
+        async def wrapper(self, *args, **kwargs):
+            ctx = args[0]
+            user = ctx.author
+            tourney = kwargs['tourney']
+            if not (user == tourney.owner or
+                    tourney.channel.permissions_for(user).administrator or
+                    any(role.name == 'TO' for role in user.roles)):
+                await ctx.send('Only a TO can run this command.')
+                return
+            return await func(self, *args, **kwargs)
+        return wrapper
+
     @auTO.command()
     @has_tourney
+    @is_to
     async def update_tags(self, ctx, *, tourney=None):
-        if ctx.author != tourney.owner:
-            return
         await tourney.gar.update_data('participants')
 
     @auTO.command()
@@ -235,12 +246,13 @@ class TOCommands(commands.Cog):
             return
 
         # Useful for debugging.
-        if config.get('CHALLONGE_KEY') is None:
+        api_key = config.get('CHALLONGE_KEY')
+        if api_key is None:
             api_key = await self.ask_for_challonge_key(ctx.author)
             if api_key is None:
                 return
 
-        tourney = self.tourney_start(ctx, tournament_id, ctx.author, api_key)
+        tourney = self.tourney_start(ctx, tournament_id, api_key)
         try:
             await tourney.gar.get_raw()
         except aiohttp.client_exceptions.ClientResponseError as e:
@@ -283,12 +295,8 @@ class TOCommands(commands.Cog):
 
     @auTO.command()
     @has_tourney
+    @is_to
     async def stop(self, ctx, *, tourney=None):
-        if ctx.author != tourney.owner:
-            await ctx.send('Sorry, only {} can stop this tournament.'.format(
-                tourney.mention_user(ctx.author.display_name)))
-            return
-
         self.tourney_stop(ctx)
         await self.bot.change_presence()
         await ctx.send('Goodbye 😞')
