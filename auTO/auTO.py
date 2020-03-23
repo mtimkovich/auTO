@@ -417,6 +417,9 @@ class TOCommands(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, err):
+        if isinstance(err, commands.CommandNotFound):
+            # These are useless and clutter the log.
+            return
         if not isinstance(err, commands.MissingRequiredArgument):
             raise err
 
