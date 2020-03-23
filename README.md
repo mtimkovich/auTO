@@ -36,7 +36,8 @@ be able to run commands requiring the TO permission.
 
 ## Discord Commands
 
-Commands are called by typing `!auTO [command]` in the channel.
+Commands are called by typing `!auTO [command]` in the channel. To run a TO command,
+the user must be an admin or in a role called "TO".
 
 | Command                 | Permissions | Description                                  |
 |-------------------------|-------------|----------------------------------------------|
@@ -51,6 +52,8 @@ Commands are called by typing `!auTO [command]` in the channel.
 ## Used By
 * 6 Buffer Saturday
 * MTV Melee
+
+Please let me know if you use auTO for your tournament: I'd love to hear about it!
 
 ## Bug/Feature Requests
 
