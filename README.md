@@ -10,7 +10,7 @@ auTO can only manage tournaments ran through [Challonge](https://challonge.com) 
 ## Features
 * List active matches.
 * Ping players when it's time for them to play.
-* \[Melee\]: Mark matches as in progress when players post netplay codes in the chat.
+* *Melee:* Mark matches as in progress when players post netplay codes in the chat.
 * Players can report their own matches without going through the TO.
 * auTO can run multiple tournaments on the same server (useful for amateur brackets), they
   just need to be on separate channels.
@@ -62,11 +62,11 @@ Please let me know if you use auTO for your tournament: I'd love to hear about i
 * [File an issue!](https://github.com/mtimkovich/auTO/issues)
 * Message me on Twitter - [@DJSwerveGG][twitter]
 
-## Development
-
-Requires Python 3.7+
-
 ## Changelog
+
+### 1.3.2
+* Delete previous matches post when matches is called.
+* Expose 404 errors on tourney creation.
 
 ### 1.3.1
 * Added check if user has "TO" role or is admin.

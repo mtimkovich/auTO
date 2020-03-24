@@ -20,7 +20,7 @@ def istrcmp(a: str, b: str) -> bool:
 
 async def send_list(ctx, the_list):
     """Send multi-line messages."""
-    await ctx.send('\n'.join(the_list))
+    return await ctx.send('\n'.join(the_list))
 
 
 async def get_dms(owner):
@@ -33,6 +33,7 @@ class Tournament(object):
         self.guild = ctx.guild
         self.channel = ctx.channel
         self.owner = ctx.author
+        self.previous_match_msg = None
         self.open_matches = []
         self.called_matches = set()
         self.recently_called = set()
@@ -261,6 +262,10 @@ class TOCommands(commands.Cog):
                 await ctx.author.dm_channel.send('Invalid API Key')
                 self.tourney_stop(ctx)
                 return
+            elif e.code == 404:
+                await ctx.send('Invalid tournament URL')
+                self.tourney_stop(ctx)
+                return
             else:
                 raise e
 
@@ -370,7 +375,10 @@ class TOCommands(commands.Cog):
                 match += ' (Playing)'
             announcement.append(match)
 
-        await send_list(ctx, announcement)
+        msg = await send_list(ctx, announcement)
+        if tourney.previous_match_msg is not None:
+            await tourney.previous_match_msg.delete()
+        tourney.previous_match_msg = msg
 
     @auTO.command(brief='Report match results')
     @has_tourney
