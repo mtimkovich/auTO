@@ -90,7 +90,7 @@ class Tournament(object):
         else:
             other = match['player1']
         self.recently_called.add(other)
-        await asyncio.sleep(5)
+        await asyncio.sleep(10)
         self.recently_called.remove(other)
 
     async def missing_tags(self, owner) -> bool:
@@ -151,6 +151,7 @@ class TOCommands(commands.Cog):
             '- `report 0-2` - report a match',
             '- `matches` - print the active matches',
             '- `status` - show how far along the tournament is',
+            '- `bracket` - print the bracket URL',
         ]
         await send_list(ctx, help_list)
 
@@ -319,7 +320,9 @@ class TOCommands(commands.Cog):
 
     @auTO.command()
     @has_tourney
+    @is_to
     async def results(self, ctx, *, tourney=None):
+        """Print the results thread."""
         top8 = await tourney.gar.get_top8()
         if top8 is None:
             return
@@ -414,6 +417,10 @@ class TOCommands(commands.Cog):
         await ctx.trigger_typing()
         await tourney.report_match(match, winner_id, username, scores_csv)
         await self.matches(ctx)
+
+    @auTO.command()
+    async def bracket(self, ctx, *, tourney=None):
+        await ctx.send(tourney.gar.get_url())
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, err):

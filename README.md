@@ -44,9 +44,11 @@ the user must be an admin or in a role called "TO".
 | `start [CHALLONGE_URL]` | TO          | Start TOing the bracket                      |
 | `stop`                  | TO          | Stop TOing                                   |
 | `update_tags`           | TO          | Get the latest tags from Challonge           |
+| `results`               | TO          | Print results after tournament is finalized  |
 | `report 0-2`            | Players     | Report a match (reporter's score goes first) |
 | `matches`               | All         | Print current matches                        |
 | `status`                | All         | Print how far along the tournament is        |
+| `bracket`               | All         | Print the bracket URL                        |
 | `help`                  | All         | Print the list of commands                   |
 
 ## Used By
@@ -65,6 +67,10 @@ Please let me know if you use auTO for your tournament: I'd love to hear about i
 Requires Python 3.7+
 
 ## Changelog
+
+### 1.3.1
+* Added check if user has "TO" role or is admin.
+* Added `bracket` command.
 
 ### 1.3
 * Use setuptools for package.

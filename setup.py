@@ -6,7 +6,7 @@ with open('README.md') as f:
 setup(
     name='auTO',
     url='https://github.com/mtimkovich/auTO',
-    version='1.3',
+    version='1.3.1',
     author='Max Timkovich',
     author_email='max@timkovi.ch',
     license='MIT',
