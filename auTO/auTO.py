@@ -382,11 +382,14 @@ class TOCommands(commands.Cog):
 
     @auTO.command(brief='Report match results')
     @has_tourney
-    async def report(self, ctx, scores_csv: str, *, tourney=None):
+    async def report(self, ctx, scores_csv: str, *, tourney=None,
+                     username=None):
+        # TODO: This doesn't account for DQ scores.
         if not re.match(r'\d-\d', scores_csv):
             await ctx.send('Invalid report. Should be `!auto report 0-2`')
             return
 
+        # TODO: This doesn't account for DQ scores.
         scores = [int(n) for n in scores_csv.split('-')]
 
         if scores[0] > scores[1]:
@@ -399,7 +402,9 @@ class TOCommands(commands.Cog):
 
         match_id = None
         winner_id = None
-        username = ctx.author.display_name
+
+        if username is None:
+            username = ctx.author.display_name
 
         if username.lower() in tourney.recently_called:
             await ctx.send('Ignoring potentially duplicate report. Try again '
@@ -414,6 +419,7 @@ class TOCommands(commands.Cog):
         match_id = match['id']
         if istrcmp(username, match['player2']):
             # Scores are reported with player1's score first.
+            # TODO: This doesn't account for DQ scores.
             scores_csv = scores_csv[::-1]
             player1_win = not player1_win
 
@@ -429,6 +435,34 @@ class TOCommands(commands.Cog):
     @auTO.command()
     async def bracket(self, ctx, *, tourney=None):
         await ctx.send(tourney.gar.get_url())
+
+    @auTO.command()
+    @has_tourney
+    @is_to
+    async def autodq(self, ctx, mention, *, tourney=None):
+        if not len(message.mentions) == 1:
+            await ctx.send('Improperly formatted command.')
+            return
+
+        user = message.mentions[0]
+
+        match = tourney.find_match(user.display_name)
+        if match is None:
+            await ctx.send('{} does not have a match to be DQed from.'
+                           .format(user.display_name))
+            return
+
+        await ctx.send('{}: message in the chat and start playing your match '
+                       'within 5 minutes or you will be DQed.'
+                       .format(user.mention))
+        try:
+            FIVE_MINUTES = 5 * 60
+            await self.bot.wait_for(
+                    'message', check=lambda m: m.author == user,
+                    timeout=FIVE_MINUTES)
+        except asyncio.TimeoutError:
+            await ctx.send('{} has been DQed'.format(user.mention))
+            await self.report(ctx, '0--1', username=user.display_name)
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, err):
