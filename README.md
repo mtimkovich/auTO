@@ -1,6 +1,6 @@
 # auTO
 
-**auTO** (pronounced *[Otto][otto]*) is a Discord bot for running Melee netplay tournaments by
+**auTO** (pronounced *[Otto][otto]*) is a Discord bot for running netplay Challonge tournaments by
 calling matches and reporting results.
 
 ![auTO Preview][preview]
@@ -10,7 +10,7 @@ auTO can only manage tournaments ran through [Challonge](https://challonge.com) 
 ## Features
 * List active matches.
 * Ping players when it's time for them to play.
-* Mark matches as in progress when players post netplay codes in the chat.
+* \[Melee\]: Mark matches as in progress when players post netplay codes in the chat.
 * Players can report their own matches without going through the TO.
 * auTO can run multiple tournaments on the same server (useful for amateur brackets), they
   just need to be on separate channels.
