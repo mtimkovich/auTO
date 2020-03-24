@@ -52,8 +52,10 @@ the user must be an admin or in a role called "TO".
 | `help`                  | All         | Print the list of commands                   |
 
 ## Used By
-* 6 Buffer Saturday
 * MTV Melee
+* 6 Buffer Saturday
+* Pacific Showdown Online
+* NL Netplay
 
 Please let me know if you use auTO for your tournament: I'd love to hear about it!
 

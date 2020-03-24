@@ -6,6 +6,8 @@ import os
 import re
 from typing import Optional, List
 
+from . import utils
+
 BASE_CHALLONGE_API_URL = 'https://api.challonge.com/v1/tournaments'
 URLS = {
     'tournament': os.path.join(BASE_CHALLONGE_API_URL, '{}.json'),

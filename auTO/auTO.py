@@ -10,106 +10,10 @@ import yaml
 
 from . import challonge
 from . config import config
+from . import utils
+from . tournament import Tournament
 
 logging.basicConfig(level=logging.INFO)
-
-
-def istrcmp(a: str, b: str) -> bool:
-    return a.lower() == b.lower()
-
-
-async def send_list(ctx, the_list):
-    """Send multi-line messages."""
-    return await ctx.send('\n'.join(the_list))
-
-
-async def get_dms(owner):
-    return (owner.dm_channel if owner.dm_channel else await owner.create_dm())
-
-
-class Tournament(object):
-    """Tournaments are unique to a guild + channel."""
-    def __init__(self, ctx, tournament_id, api_key, session):
-        self.guild = ctx.guild
-        self.channel = ctx.channel
-        self.owner = ctx.author
-        self.previous_match_msg = None
-        self.open_matches = []
-        self.called_matches = set()
-        self.recently_called = set()
-        self.gar = challonge.Challonge(api_key, tournament_id, session)
-
-    async def get_open_matches(self):
-        matches = await self.gar.get_matches()
-        self.open_matches = [m for m in matches if m['state'] == 'open']
-
-    async def mark_match_underway(self, user1, user2):
-        match_id = None
-
-        for user in [user1, user2]:
-            match = self.find_match(user.display_name)
-            if match is None:
-                return
-            elif match_id is None:
-                match_id = match['id']
-            elif match_id != match['id']:
-                return
-
-        await self.gar.mark_underway(match_id)
-
-    def find_match(self, username):
-        for match in self.open_matches:
-            if username.lower() in map(lambda s: s.lower(), [match['player1'],
-                                       match['player2']]):
-                return match
-        else:
-            return None
-
-    def mention_user(self, username: str) -> str:
-        """Gets the user mention string. If the user isn't found, just return
-        the username."""
-        for member in self.guild.members:
-            if istrcmp(member.display_name, username):
-                return member.mention
-        return username
-
-    def has_user(self, username: str) -> bool:
-        """Finds if username is on the server."""
-        return any(istrcmp(m.display_name, username)
-                   for m in self.guild.members)
-
-    async def report_match(self, match, winner_id, reporter, scores_csv):
-        await self.add_to_recently_called(match, reporter)
-        await self.gar.report_match(
-                match['id'], winner_id, scores_csv)
-        self.called_matches.remove(match['id'])
-
-    async def add_to_recently_called(self, match, reporter):
-        """Prevent both players from reporting at the same time."""
-        if istrcmp(match['player1'], reporter):
-            other = match['player2']
-        else:
-            other = match['player1']
-        self.recently_called.add(other)
-        await asyncio.sleep(10)
-        self.recently_called.remove(other)
-
-    async def missing_tags(self, owner) -> bool:
-        """Check the participants list for players not on the server."""
-        dms = await get_dms(owner)
-        missing = [player for player in self.gar.get_players()
-                   if not self.has_user(player)]
-        if not missing:
-            return False
-        message = ['Missing Discord accounts for the following players:']
-        for p in missing:
-            message.append('- {}'.format(p))
-        await send_list(dms, message)
-        return True
-
-    @classmethod
-    def key(cls, ctx):
-        return ctx.guild, ctx.channel
 
 
 class TOCommands(commands.Cog):
@@ -138,6 +42,10 @@ class TOCommands(commands.Cog):
     def tourney_stop(self, ctx):
         self.tournament_map.pop(Tournament.key(ctx))
 
+    async def get_dms(self, owner):
+        return (owner.dm_channel if owner.dm_channel
+                else await owner.create_dm())
+
     @commands.group(case_insensitive=True)
     async def auTO(self, ctx):
         if ctx.invoked_subcommand is None:
@@ -154,7 +62,7 @@ class TOCommands(commands.Cog):
             '- `status` - show how far along the tournament is',
             '- `bracket` - print the bracket URL',
         ]
-        await send_list(ctx, help_list)
+        await utils.send_list(ctx, help_list)
 
     def has_tourney(func):
         """Decorator that returns if no tourney is set."""
@@ -203,7 +111,7 @@ class TOCommands(commands.Cog):
     async def ask_for_challonge_key(self,
                                     owner: discord.Member) -> Optional[str]:
         """DM the TO for their Challonge key."""
-        dms = await get_dms(owner)
+        dms = await self.get_dms(owner)
         await dms.send("Hey there! To run this tournament for you, I'll need "
                        "your Challonge API key "
                        "(https://challonge.com/settings/developer). "
@@ -217,7 +125,7 @@ class TOCommands(commands.Cog):
                     'message', check=self.is_dm_response(owner))
 
             content = msg.content.strip()
-            if istrcmp(content, 'no'):
+            if utils.istrcmp(content, 'no'):
                 await dms.send('👍')
                 return None
             elif re.match(r'[a-z0-9]+$', content, re.I):
@@ -227,7 +135,7 @@ class TOCommands(commands.Cog):
 
     async def confirm(self, ctx, question) -> bool:
         """DM the user a yes/no question."""
-        dms = await get_dms(ctx.author)
+        dms = await self.get_dms(ctx.author)
         await dms.send('{} [Y/n]'.format(question))
         msg = await self.bot.wait_for(
                 'message', check=self.is_dm_response(ctx.author))
@@ -343,7 +251,7 @@ class TOCommands(commands.Cog):
             players = ' / '.join(map(tourney.mention_user, players))
             message.append('{}. {}'.format(i, players))
 
-        await send_list(ctx, message)
+        await utils.send_list(ctx, message)
         self.tourney_stop(ctx)
         await self.bot.change_presence()
 
@@ -375,7 +283,7 @@ class TOCommands(commands.Cog):
                 match += ' (Playing)'
             announcement.append(match)
 
-        msg = await send_list(ctx, announcement)
+        msg = await utils.send_list(ctx, announcement)
         if tourney.previous_match_msg is not None:
             await tourney.previous_match_msg.delete()
         tourney.previous_match_msg = msg
@@ -417,7 +325,7 @@ class TOCommands(commands.Cog):
             return
 
         match_id = match['id']
-        if istrcmp(username, match['player2']):
+        if utils.istrcmp(username, match['player2']):
             # Scores are reported with player1's score first.
             # TODO: This doesn't account for DQ scores.
             scores_csv = scores_csv[::-1]
@@ -439,7 +347,7 @@ class TOCommands(commands.Cog):
     @auTO.command()
     @has_tourney
     @is_to
-    async def autodq(self, ctx, mention, *, tourney=None):
+    async def noshow(self, ctx, mention, *, tourney=None):
         if not len(message.mentions) == 1:
             await ctx.send('Improperly formatted command.')
             return
