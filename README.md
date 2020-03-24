@@ -27,7 +27,7 @@ be able to run commands requiring the TO permission.
 
 1. [Invite auTO to your server.][setup]
 2. Create your Challonge bracket and add players.
-    1. Note: The player's tag in the Challonge bracket **must be** their Discord username.
+    1. Note: The player's tag in the Challonge bracket **must be** their Discord username. This is the username as it appears          on the server you're on, and not including the "#1234" discriminator at the end.
 3. Run `!auTO start [CHALLONGE_URL]` in the channel you want the tournament to run.
     1. auTO will dm you to ask for your Challonge API key. (This is deleted as soon as the
        tournament finishes.)
