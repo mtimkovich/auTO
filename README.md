@@ -1,6 +1,6 @@
 # auTO
 
-**auTO** (pronounced *[Otto][otto]*) is a Discord bot for running netplay Challonge tournaments by
+**auTO** (pronounced *[Otto][otto]*) is a Discord bot for running netplay tournaments by
 calling matches and reporting results.
 
 ![auTO Preview][preview]
