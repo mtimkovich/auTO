@@ -359,7 +359,8 @@ class TOCommands(commands.Cog):
             return
 
         announcement = []
-        for m in tourney.open_matches:
+        for m in sorted(tourney.open_matches,
+                        key=lambda m: m['suggested_play_order']):
             player1 = m['player1']
             player2 = m['player2']
 
@@ -427,7 +428,9 @@ class TOCommands(commands.Cog):
         await self.matches(ctx)
 
     @auTO.command()
+    @has_tourney
     async def bracket(self, ctx, *, tourney=None):
+        await ctx.trigger_typing()
         await ctx.send(tourney.gar.get_url())
 
     @commands.Cog.listener()

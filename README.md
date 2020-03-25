@@ -68,6 +68,11 @@ Please let me know if you use auTO for your tournament: I'd love to hear about i
 
 ## Changelog
 
+### 1.3.3
+* Fix round naming.
+* Fix bug with `bracket`.
+* Sort matches by play order.
+
 ### 1.3.2
 * Delete previous matches post when matches is called.
 * Expose 404 errors on tourney creation.
