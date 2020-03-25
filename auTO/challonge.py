@@ -72,33 +72,21 @@ class Challonge(object):
     def num_winners_rounds(self, num_players: int) -> int:
         return int(math.ceil(math.log(num_players, 2))) + 1
 
-    def num_losers_rounds(self, num_players: int) -> int:
-        log2 = math.log(num_players, 2)
-        return int(math.ceil(log2) + math.ceil(math.log(log2, 2)))
-
     def round_name(self, round_num: int) -> str:
         """Creates the shortened, human-readable version of round names."""
         num_players = len(self.get_players())
         winners_rounds = self.num_winners_rounds(num_players)
-        losers_rounds = self.num_losers_rounds(num_players)
-
-        # Special case for when #players is a power of 2.
-        if winners_rounds == losers_rounds:
-            losers_rounds -= 1
 
         prefix = 'W' if round_num > 0 else 'L'
         suffix = 'R{}'.format(abs(round_num))
 
         if round_num == winners_rounds:
             return 'GF'
-        elif (round_num == winners_rounds - 1 or
-              round_num == -losers_rounds):
+        elif round_num == winners_rounds - 1:
             suffix = 'F'
-        elif (round_num == winners_rounds - 2 or
-              round_num == -losers_rounds + 1):
+        elif round_num == winners_rounds - 2:
             suffix = 'SF'
-        elif (round_num == winners_rounds - 3 or
-              round_num == -losers_rounds + 2):
+        elif round_num == winners_rounds - 3:
             suffix = 'QF'
 
         return '{}{}'.format(prefix, suffix)
