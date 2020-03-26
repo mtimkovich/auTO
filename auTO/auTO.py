@@ -52,6 +52,7 @@ class TOCommands(commands.Cog):
         help_list = [
             '- `start [URL]` - start TOing',
             '- `stop` - stop TOing',
+            '- `noshow @Player` - Start DQ process for player',
             '- `update_tags` - get the latest Challonge tags',
             '- `report 0-2` - report a match',
             '- `matches` - print the active matches',
@@ -182,8 +183,7 @@ class TOCommands(commands.Cog):
             self.tourney_stop(ctx)
             return
 
-        # has_missing = await tourney.missing_tags(ctx.author)
-        has_missing = False
+        has_missing = await tourney.missing_tags(ctx.author)
         if has_missing:
             confirm = await self.confirm(ctx, 'Continue anyway?')
             if confirm:
@@ -261,6 +261,14 @@ class TOCommands(commands.Cog):
 
         if not tourney.open_matches:
             await self.end_tournament(ctx, tourney)
+            return
+
+        dqees = tourney.get_dqs_in_matches()
+        for dq in dqees:
+            # They have been double eliminated so we don't need to track them
+            # anymore.
+            tourney.dqees.remove(dq)
+            await self.report(ctx, '-1-0', username=dq)
             return
 
         announcement = []
@@ -362,7 +370,9 @@ class TOCommands(commands.Cog):
                     'message', check=lambda m: m.author == user,
                     timeout=FIVE_MINUTES)
         except asyncio.TimeoutError:
-            await ctx.send('{} has been DQed'.format(user.mention))
+            msg = await ctx.send('{} has been DQed'.format(user.mention))
+            await msg.add_reaction('🇫')
+            tourney.dqees.add(user.display_name)
             await self.report(ctx, '-1-0', username=user.display_name)
 
     @commands.Cog.listener()

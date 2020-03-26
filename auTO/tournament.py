@@ -1,4 +1,5 @@
 import asyncio
+from typing import List
 
 from . import challonge
 from . import utils
@@ -14,11 +15,21 @@ class Tournament(object):
         self.open_matches = []
         self.called_matches = set()
         self.recently_called = set()
+        self.dqees = set()
         self.gar = challonge.Challonge(api_key, tournament_id, session)
 
     async def get_open_matches(self):
         matches = await self.gar.get_matches()
         self.open_matches = [m for m in matches if m['state'] == 'open']
+
+    def get_dqs_in_matches(self) -> List[str]:
+        """Check open matches for dqed players."""
+        dqees = []
+        for match in self.open_matches:
+            for dqee in self.dqees:
+                if self.user_in_match(dqee, match):
+                    dqees.append(dqee)
+        return dqees
 
     async def mark_match_underway(self, user1, user2):
         match_id = None
@@ -34,10 +45,13 @@ class Tournament(object):
 
         await self.gar.mark_underway(match_id)
 
+    def user_in_match(self, username, match) -> bool:
+        return username.lower() in map(lambda s: s.lower(), [match['player1'],
+                                       match['player2']])
+
     def find_match(self, username):
         for match in self.open_matches:
-            if username.lower() in map(lambda s: s.lower(), [match['player1'],
-                                       match['player2']]):
+            if self.user_in_match(username, match):
                 return match
         else:
             return None
@@ -59,7 +73,10 @@ class Tournament(object):
         await self.add_to_recently_called(match, reporter)
         await self.gar.report_match(
                 match['id'], winner_id, scores_csv)
-        self.called_matches.remove(match['id'])
+        try:
+            self.called_matches.remove(match['id'])
+        except KeyError:
+            pass
 
     async def add_to_recently_called(self, match, reporter):
         """Prevent both players from reporting at the same time."""
