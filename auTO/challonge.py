@@ -82,7 +82,7 @@ class Challonge(object):
                 continue
 
             self.losers_rounds = min(self.losers_rounds, round_num)
-            self.winners_rounds = max(self.losers_rounds, round_num)
+            self.winners_rounds = max(self.winners_rounds, round_num)
 
     def round_name(self, round_num: int) -> str:
         """Creates the shortened, human-readable version of round names."""
