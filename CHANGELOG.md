@@ -3,6 +3,7 @@
 ### 1.4.0
 * Add `noshow` command for auto-DQing!
 * Report works for negative scores.
+* auTO asks for the `add_reactions` permission.
 
 ### 1.3.3
 * Fix round naming.
