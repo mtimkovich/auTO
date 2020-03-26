@@ -21,7 +21,8 @@ Invite auTO to your Discord server by [clicking here][invite]. You'll need the "
 permission.
 
 I also recommend creating a role called "TO" on your server. Everyone with this role will
-be able to run commands requiring the TO permission.
+be able to run commands requiring the TO permission. By default, only the creator and admins
+will be able to run TO commands.
 
 ## Running a Tournament
 
@@ -67,39 +68,12 @@ Please let me know if you use auTO for your tournament: I'd love to hear about i
 * [File an issue!](https://github.com/mtimkovich/auTO/issues)
 * Message me on Twitter - [@DJSwerveGG][twitter]
 
-## Changelog
-
-### 1.3.3
-* Fix round naming.
-* Fix bug with `bracket`.
-* Sort matches by play order.
-
-### 1.3.2
-* Delete previous matches post when matches is called.
-* Expose 404 errors on tourney creation.
-
-### 1.3.1
-* Added check if user has "TO" role or is admin.
-* Added `bracket` command.
-
-### 1.3
-* Use setuptools for package.
-* Use `!` as prefix to be more familiar to Twitch ~~nerds~~ users.
-
-### 1.2
-* Check that all players in in the server before starting.
-* Make commands case-insensitive.
-
-### 1.1
-* Only ping for new matches.
-* Add timeout between reports to avoid duplicates.
-
 ## Author
 
 Max "DJSwerve" Timkovich
 
 [otto]: https://www.ssbwiki.com/Smasher:Silent_Wolf
 [setup]: https://github.com/mtimkovich/auTO#setup
-[invite]: https://discordapp.com/api/oauth2/authorize?client_id=687888371556548680&permissions=10240&scope=bot
+[invite]: https://discordapp.com/api/oauth2/authorize?client_id=687888371556548680&permissions=75840&scope=bot
 [preview]: https://raw.githubusercontent.com/mtimkovich/auTO/master/img/auTO_preview.png
 [twitter]: https://twitter.com/DJSwerveGG
