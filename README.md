@@ -41,17 +41,18 @@ be able to run commands requiring the TO permission.
 Commands are called by typing `!auTO [command]` in the channel. To run a TO command,
 the user must be an admin or in a role called "TO".
 
-| Command                 | Permissions | Description                                  |
-|-------------------------|-------------|----------------------------------------------|
-| `start [CHALLONGE_URL]` | TO          | Start TOing the bracket                      |
-| `stop`                  | TO          | Stop TOing                                   |
-| `update_tags`           | TO          | Get the latest tags from Challonge           |
-| `results`               | TO          | Print results after tournament is finalized  |
-| `report 0-2`            | Players     | Report a match (reporter's score goes first) |
-| `matches`               | All         | Print current matches                        |
-| `status`                | All         | Print how far along the tournament is        |
-| `bracket`               | All         | Print the bracket URL                        |
-| `help`                  | All         | Print the list of commands                   |
+| Command                 | Permissions | Description                                          |
+|-------------------------|-------------|------------------------------------------------------|
+| `start [CHALLONGE_URL]` | TO          | Start TOing the bracket                              |
+| `stop`                  | TO          | Stop TOing                                           |
+| `update_tags`           | TO          | Get the latest tags from Challonge                   |
+| `results`               | TO          | Print results after tournament is finalized          |
+| `noshow @Player`        | TO          | Give player 5 minutes to post in the chat or be DQed |
+| `report 0-2`            | Players     | Report a match (reporter's score goes first)         |
+| `matches`               | All         | Print current matches                                |
+| `status`                | All         | Print how far along the tournament is                |
+| `bracket`               | All         | Print the bracket URL                                |
+| `help`                  | All         | Print the list of commands                           |
 
 ## Used By
 * NL Netplay
