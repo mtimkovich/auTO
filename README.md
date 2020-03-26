@@ -1,17 +1,17 @@
 # auTO
 
-**auTO** (pronounced *[Otto][otto]*) is a Discord bot for running netplay tournaments by
-calling matches and reporting results.
+**auTO** is a Discord bot for running netplay tournaments by calling matches and reporting results.
 
 ![auTO Preview][preview]
 
-auTO can only manage tournaments ran through [Challonge](https://challonge.com) at the moment.
+auTO can only manage tournaments ran through [Challonge](https://challonge.com).
 
 ## Features
 * List active matches.
 * Ping players when it's time for them to play.
 * *Melee:* Mark matches as in progress when players post netplay codes in the chat.
 * Players can report their own matches without going through the TO.
+* TOs can start auto DQ timer for missing players (`noshow`).
 * Run multiple tournaments on the same server.
 
 ## Setup
@@ -71,7 +71,6 @@ Please let me know if you use auTO for your tournament: I'd love to hear about i
 
 Max "DJSwerve" Timkovich
 
-[otto]: https://www.ssbwiki.com/Smasher:Silent_Wolf
 [setup]: https://github.com/mtimkovich/auTO#setup
 [invite]: https://discordapp.com/api/oauth2/authorize?client_id=687888371556548680&permissions=75840&scope=bot
 [preview]: https://raw.githubusercontent.com/mtimkovich/auTO/master/img/auTO_preview.png
