@@ -43,7 +43,7 @@ the user must be an admin or in a role called "TO".
 
 | Command                 | Permissions | Description                                          |
 |-------------------------|-------------|------------------------------------------------------|
-| `start [CHALLONGE_URL]` | TO          | Start TOing the bracket                              |
+| `start [CHALLONGE_URL]` | All         | Start TOing the bracket                              |
 | `stop`                  | TO          | Stop TOing                                           |
 | `update_tags`           | TO          | Get the latest tags from Challonge                   |
 | `results`               | TO          | Print results after tournament is finalized          |
