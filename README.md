@@ -12,8 +12,7 @@ auTO can only manage tournaments ran through [Challonge](https://challonge.com) 
 * Ping players when it's time for them to play.
 * *Melee:* Mark matches as in progress when players post netplay codes in the chat.
 * Players can report their own matches without going through the TO.
-* auTO can run multiple tournaments on the same server (useful for amateur brackets), they
-  just need to be on separate channels.
+* Run multiple tournaments on the same server.
 
 ## Setup
 
