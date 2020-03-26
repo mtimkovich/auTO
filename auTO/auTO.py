@@ -42,10 +42,6 @@ class TOCommands(commands.Cog):
     def tourney_stop(self, ctx):
         self.tournament_map.pop(Tournament.key(ctx))
 
-    async def get_dms(self, owner):
-        return (owner.dm_channel if owner.dm_channel
-                else await owner.create_dm())
-
     @commands.group(case_insensitive=True)
     async def auTO(self, ctx):
         if ctx.invoked_subcommand is None:
@@ -111,7 +107,7 @@ class TOCommands(commands.Cog):
     async def ask_for_challonge_key(self,
                                     owner: discord.Member) -> Optional[str]:
         """DM the TO for their Challonge key."""
-        dms = await self.get_dms(owner)
+        dms = await utils.get_dms(owner)
         await dms.send("Hey there! To run this tournament for you, I'll need "
                        "your Challonge API key "
                        "(https://challonge.com/settings/developer). "
@@ -135,7 +131,7 @@ class TOCommands(commands.Cog):
 
     async def confirm(self, ctx, question) -> bool:
         """DM the user a yes/no question."""
-        dms = await self.get_dms(ctx.author)
+        dms = await utils.get_dms(ctx.author)
         await dms.send('{} [Y/n]'.format(question))
         msg = await self.bot.wait_for(
                 'message', check=self.is_dm_response(ctx.author))
@@ -186,7 +182,8 @@ class TOCommands(commands.Cog):
             self.tourney_stop(ctx)
             return
 
-        has_missing = await tourney.missing_tags(ctx.author)
+        # has_missing = await tourney.missing_tags(ctx.author)
+        has_missing = False
         if has_missing:
             confirm = await self.confirm(ctx, 'Continue anyway?')
             if confirm:
@@ -267,7 +264,8 @@ class TOCommands(commands.Cog):
             return
 
         announcement = []
-        for m in tourney.open_matches:
+        for m in sorted(tourney.open_matches,
+                        key=lambda m: m['suggested_play_order']):
             player1 = m['player1']
             player2 = m['player2']
 
@@ -292,13 +290,12 @@ class TOCommands(commands.Cog):
     @has_tourney
     async def report(self, ctx, scores_csv: str, *, tourney=None,
                      username=None):
-        # TODO: This doesn't account for DQ scores.
-        if not re.match(r'\d-\d', scores_csv):
+        score_match = re.match(r'(-?\d+)-(-?\d+)', scores_csv)
+        if not score_match:
             await ctx.send('Invalid report. Should be `!auto report 0-2`')
             return
 
-        # TODO: This doesn't account for DQ scores.
-        scores = [int(n) for n in scores_csv.split('-')]
+        scores = list(map(int, score_match.groups()))
 
         if scores[0] > scores[1]:
             player1_win = True
@@ -327,8 +324,7 @@ class TOCommands(commands.Cog):
         match_id = match['id']
         if utils.istrcmp(username, match['player2']):
             # Scores are reported with player1's score first.
-            # TODO: This doesn't account for DQ scores.
-            scores_csv = scores_csv[::-1]
+            scores_csv = '{1}-{0}'.format(*scores)
             player1_win = not player1_win
 
         if player1_win:
@@ -341,19 +337,16 @@ class TOCommands(commands.Cog):
         await self.matches(ctx)
 
     @auTO.command()
+    @has_tourney
     async def bracket(self, ctx, *, tourney=None):
+        await ctx.trigger_typing()
         await ctx.send(tourney.gar.get_url())
 
     @auTO.command()
     @has_tourney
     @is_to
-    async def noshow(self, ctx, mention, *, tourney=None):
-        if not len(message.mentions) == 1:
-            await ctx.send('Improperly formatted command.')
-            return
-
-        user = message.mentions[0]
-
+    async def noshow(self, ctx, user: discord.Member, *, tourney=None):
+        await ctx.trigger_typing()
         match = tourney.find_match(user.display_name)
         if match is None:
             await ctx.send('{} does not have a match to be DQed from.'
@@ -370,7 +363,7 @@ class TOCommands(commands.Cog):
                     timeout=FIVE_MINUTES)
         except asyncio.TimeoutError:
             await ctx.send('{} has been DQed'.format(user.mention))
-            await self.report(ctx, '0--1', username=user.display_name)
+            await self.report(ctx, '-1-0', username=user.display_name)
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, err):

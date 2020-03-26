@@ -73,7 +73,7 @@ class Tournament(object):
 
     async def missing_tags(self, owner) -> bool:
         """Check the participants list for players not on the server."""
-        dms = await get_dms(owner)
+        dms = await utils.get_dms(owner)
         missing = [player for player in self.gar.get_players()
                    if not self.has_user(player)]
         if not missing:

@@ -1,7 +1,6 @@
 import aiohttp
 import asyncio
 import collections
-import math
 import os
 import re
 from typing import Optional, List
@@ -40,6 +39,8 @@ class Challonge(object):
         self.api_key_dict = {'api_key': self.api_key}
         self.tournament_id = tournament_id
         self.session = session
+        self.losers_rounds = None
+        self.winners_rounds = None
 
         self.player_map = None
         self.raw_dict = None
@@ -51,6 +52,7 @@ class Challonge(object):
             await self.update_data(key)
 
         self.set_player_map()
+        self.max_rounds()
 
         return self.raw_dict
 
@@ -71,36 +73,32 @@ class Challonge(object):
     def get_state(self) -> str:
         return self.raw_dict['tournament']['tournament']['state']
 
-    def num_winners_rounds(self, num_players: int) -> int:
-        return int(math.ceil(math.log(num_players, 2))) + 1
+    def max_rounds(self):
+        for match in self.raw_dict['matches']:
+            round_num = match['match']['round']
+            if self.losers_rounds is None or self.winners_rounds is None:
+                self.losers_rounds = round_num
+                self.winners_rounds = round_num
+                continue
 
-    def num_losers_rounds(self, num_players: int) -> int:
-        log2 = math.log(num_players, 2)
-        return int(math.ceil(log2) + math.ceil(math.log(log2, 2)))
+            self.losers_rounds = min(self.losers_rounds, round_num)
+            self.winners_rounds = max(self.losers_rounds, round_num)
 
     def round_name(self, round_num: int) -> str:
         """Creates the shortened, human-readable version of round names."""
-        num_players = len(self.get_players())
-        winners_rounds = self.num_winners_rounds(num_players)
-        losers_rounds = self.num_losers_rounds(num_players)
-
-        # Special case for when #players is a power of 2.
-        if winners_rounds == losers_rounds:
-            losers_rounds -= 1
-
         prefix = 'W' if round_num > 0 else 'L'
         suffix = 'R{}'.format(abs(round_num))
 
-        if round_num == winners_rounds:
+        if round_num == self.winners_rounds:
             return 'GF'
-        elif (round_num == winners_rounds - 1 or
-              round_num == -losers_rounds):
+        elif (round_num == self.winners_rounds - 1 or
+                round_num == self.losers_rounds):
             suffix = 'F'
-        elif (round_num == winners_rounds - 2 or
-              round_num == -losers_rounds + 1):
+        elif (round_num == self.winners_rounds - 2 or
+                round_num == self.losers_rounds + 1):
             suffix = 'SF'
-        elif (round_num == winners_rounds - 3 or
-              round_num == -losers_rounds + 2):
+        elif (round_num == self.winners_rounds - 3 or
+                round_num == self.losers_rounds + 2):
             suffix = 'QF'
 
         return '{}{}'.format(prefix, suffix)
@@ -165,6 +163,7 @@ class Challonge(object):
             underway = m['underway_at'] is not None
             winner_id = m['winner_id']
             loser_id = m['loser_id']
+            suggested_play_order = m['suggested_play_order']
 
             if player1_id is None or player2_id is None:
                 continue
@@ -187,6 +186,7 @@ class Challonge(object):
                 'player2_id': player2_id,
                 'round': self.round_name(round_num),
                 'state': state,
+                'suggested_play_order': suggested_play_order,
                 'underway': underway,
                 'winner': winner,
             }
@@ -216,13 +216,13 @@ class Challonge(object):
 
 
 async def main():
-    tournament_id = 'mtvmelee-netplay2'
-    # tournament_id = 'djswerve'
+    # tournament_id = 'mtvmelee-netplay2'
+    tournament_id = 'djswerve1'
     api_key = os.environ.get('CHALLONGE_KEY')
     async with aiohttp.ClientSession() as session:
         gar = Challonge(api_key, tournament_id, session)
         await gar.get_raw()
-        print(gar.raw_dict['participants'])
+        print(gar.raw_dict['matches'])
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
