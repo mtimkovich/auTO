@@ -380,7 +380,14 @@ class TOCommands(commands.Cog):
         if isinstance(err, commands.CommandNotFound):
             # These are useless and clutter the log.
             return
-        if not isinstance(err, commands.MissingRequiredArgument):
+        if isinstance(err, aiohttp.client_exceptions.ClientResponseError):
+            if code == 401:
+                await ctx.send('Invalid API key.')
+            else:
+                await ctx.send('Error connecting to Challonge 💀')
+            return
+
+        elif not isinstance(err, commands.MissingRequiredArgument):
             raise err
 
         if ctx.invoked_subcommand.name == 'start':
