@@ -16,6 +16,8 @@ URLS = {
 }
 
 MATCH_URL = os.path.join(BASE_CHALLONGE_API_URL, '{}', 'matches', '{}')
+PARTICIPANT_URL = os.path.join(
+        BASE_CHALLONGE_API_URL, '{}', 'participants', '{}.json')
 
 
 def extract_id(url):
@@ -193,13 +195,13 @@ class Challonge(object):
             matches.append(match)
         return matches
 
-    def get_player(self, p):
+    def get_player_name(self, p):
         return (p['participant']['name'].strip()
                 if p['participant']['name']
                 else p['participant']['username'].strip())
 
     def get_players(self):
-        return [self.get_player(p) for p in self.raw_dict['participants']]
+        return [self.get_player_name(p) for p in self.raw_dict['participants']]
 
     async def get_top8(self):
         await self.get_raw()
@@ -213,6 +215,24 @@ class Challonge(object):
                 top8[rank].append(self.get_player(p))
 
         return sorted(top8.items())
+
+    def get_player(self, tag: str):
+        for p in self.raw_dict['participants']:
+            name = self.get_player_name(p)
+            if utils.istrcmp(tag, name):
+                return p
+        return None
+
+    async def rename(self, tag, discord_name):
+        player = self.get_player(tag)
+        if player is None:
+            raise KeyError("Can't find player with tag: '{}'".format(tag))
+        url = PARTICIPANT_URL.format(self.tournament_id, p['id'])
+        data = self.api_key_dict.copy()
+        data['participant[name]'] = discord_name
+        # TODO: Catch 422 errors.
+        async with self.session.put(url, data=data) as r:
+            return await r.json()
 
 
 async def main():

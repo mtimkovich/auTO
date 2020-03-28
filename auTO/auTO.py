@@ -108,14 +108,13 @@ class TOCommands(commands.Cog):
     async def ask_for_challonge_key(self,
                                     owner: discord.Member) -> Optional[str]:
         """DM the TO for their Challonge key."""
-        dms = await utils.get_dms(owner)
-        await dms.send("Hey there! To run this tournament for you, I'll need "
-                       "your Challonge API key "
-                       "(https://challonge.com/settings/developer). "
-                       "The key is only used to run the bracket and is "
-                       "deleted after the tournament finishes.")
-        await dms.send("If that's ok with you, respond to this message with "
-                       "your Challonge API key, otherwise, with 'NO'.")
+        await owner.send("Hey there! To run this tournament for you, I'll "
+                         "need your Challonge API key "
+                         "(https://challonge.com/settings/developer). "
+                         "The key is only used to run the bracket and is "
+                         "deleted after the tournament finishes.")
+        await owner.send("If that's ok with you, respond to this message with "
+                         "your Challonge API key, otherwise, with 'NO'.")
 
         while True:
             msg = await self.bot.wait_for(
@@ -123,17 +122,16 @@ class TOCommands(commands.Cog):
 
             content = msg.content.strip()
             if utils.istrcmp(content, 'no'):
-                await dms.send('👍')
+                await owner.send('👍')
                 return None
             elif re.match(r'[a-z0-9]+$', content, re.I):
                 return content
             else:
-                await dms.send('Invalid API key, try again.')
+                await owner.send('Invalid API key, try again.')
 
     async def confirm(self, ctx, question) -> bool:
         """DM the user a yes/no question."""
-        dms = await utils.get_dms(ctx.author)
-        await dms.send('{} [Y/n]'.format(question))
+        await ctx.author.send('{} [Y/n]'.format(question))
         msg = await self.bot.wait_for(
                 'message', check=self.is_dm_response(ctx.author))
 
