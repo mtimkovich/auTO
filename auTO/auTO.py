@@ -106,6 +106,7 @@ class TOCommands(commands.Cog):
             await tourney.gar.rename(challonge_tag, member.display_name)
         except ValueError as e:
             await ctx.send(e)
+            return
         await ctx.send('Renamed {} to {}'.format(
                        challonge_tag, member.display_name))
 
