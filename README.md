@@ -45,9 +45,10 @@ the user must be an admin or in a role called "TO".
 |-------------------------|-------------|------------------------------------------------------|
 | `start [CHALLONGE_URL]` | All         | Start TOing the bracket                              |
 | `stop`                  | TO          | Stop TOing                                           |
-| `update_tags`           | TO          | Get the latest tags from Challonge                   |
 | `results`               | TO          | Print results after tournament is finalized          |
+| `rename tag @Player`    | TO          | Rename player to their Discord username              |
 | `noshow @Player`        | TO          | Give player 5 minutes to post in the chat or be DQed |
+| `update_tags`           | TO          | Get the latest tags from Challonge                   |
 | `report 0-2`            | Players     | Report a match (reporter's score goes first)         |
 | `matches`               | All         | Print current matches                                |
 | `status`                | All         | Print how far along the tournament is                |

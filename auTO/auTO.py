@@ -52,6 +52,7 @@ class TOCommands(commands.Cog):
         help_list = [
             '- `start [URL]` - start TOing',
             '- `stop` - stop TOing',
+            '- `rename tag @Player` - Rename player to their Discord tag',
             '- `noshow @Player` - Start DQ process for player',
             '- `update_tags` - get the latest Challonge tags',
             '- `report 0-2` - report a match',
@@ -93,7 +94,20 @@ class TOCommands(commands.Cog):
     @has_tourney
     @is_to
     async def update_tags(self, ctx, *, tourney=None):
-        await tourney.gar.update_data('participants')
+        await tourney.gar.get_raw()
+
+    @auTO.command()
+    @has_tourney
+    @is_to
+    async def rename(self, ctx, challonge_tag: str, member: discord.Member,
+                     *, tourney=None):
+        await ctx.trigger_typing()
+        try:
+            await tourney.gar.rename(challonge_tag, member.display_name)
+        except ValueError as e:
+            await ctx.send(e)
+        await ctx.send('Renamed {} to {}'.format(
+                       challonge_tag, member.display_name))
 
     @auTO.command()
     @has_tourney
@@ -378,13 +392,15 @@ class TOCommands(commands.Cog):
         if isinstance(err, commands.CommandNotFound):
             # These are useless and clutter the log.
             return
-        if isinstance(err, aiohttp.client_exceptions.ClientResponseError):
+        elif isinstance(err, aiohttp.client_exceptions.ClientResponseError):
             if code == 401:
                 await ctx.send('Invalid API key.')
             else:
                 await ctx.send('Error connecting to Challonge 💀')
             return
-
+        elif isinstance(err, commands.errors.BadArgument):
+            await ctx.send(err)
+            return
         elif not isinstance(err, commands.MissingRequiredArgument):
             raise err
 

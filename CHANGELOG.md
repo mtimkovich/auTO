@@ -1,5 +1,9 @@
 # Changelog
 
+### 1.4.5
+* Add `rename` command for fixing user tags (#16).
+* Catch 500 errors from Challonge.
+
 ### 1.4.0
 * Add `noshow` command for auto-DQing!
 * Report works for negative scores.

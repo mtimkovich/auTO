@@ -223,26 +223,37 @@ class Challonge(object):
                 return p
         return None
 
-    async def rename(self, tag, discord_name):
-        player = self.get_player(tag)
-        if player is None:
-            raise KeyError("Can't find player with tag: '{}'".format(tag))
-        url = PARTICIPANT_URL.format(self.tournament_id, p['id'])
+    async def rename(self, tag: str, discord_name: str):
+        """Rename player from |tag| to |discord_name|."""
+        p = self.get_player(tag)
+        if p is None:
+            raise ValueError("Can't find player with tag: '{}'".format(tag))
+        player = p['participant']
+        url = PARTICIPANT_URL.format(self.tournament_id, player['id'])
         data = self.api_key_dict.copy()
         data['participant[name]'] = discord_name
-        # TODO: Catch 422 errors.
-        async with self.session.put(url, data=data) as r:
-            return await r.json()
+        try:
+            async with self.session.put(url, data=data) as r:
+                await r.json()
+        except aiohttp.client_exceptions.ClientResponseError as e:
+            if e.code == 422:
+                raise ValueError(
+                        "Can't rename '{}' to '{}'. Possible duplicate?"
+                        .format(tag, discord_name))
+            raise e
+
+        await self.get_raw()
 
 
 async def main():
     # tournament_id = 'mtvmelee-netplay2'
     tournament_id = 'djswerve1'
     api_key = os.environ.get('CHALLONGE_KEY')
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(raise_for_status=True) as session:
         gar = Challonge(api_key, tournament_id, session)
         await gar.get_raw()
-        print(gar.raw_dict['matches'])
+        await gar.rename('tinklefairy6', 'DJSwerve')
+        print(gar.get_players())
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
