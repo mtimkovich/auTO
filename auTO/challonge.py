@@ -144,7 +144,7 @@ class Challonge(object):
         async with self.session.post(url, data=self.api_key_dict) as r:
             return await r.json()
 
-    async def get_matches(self):
+    async def get_matches(self) -> List:
         """Fetch latest match data."""
         # sometimes challonge seems to use the "group_player_ids" parameter of
         # "participant" instead of the "id" parameter of "participant" in the
@@ -195,15 +195,15 @@ class Challonge(object):
             matches.append(match)
         return matches
 
-    def get_player_name(self, p):
+    def get_player_name(self, p) -> str:
         return (p['participant']['name'].strip()
                 if p['participant']['name']
                 else p['participant']['username'].strip())
 
-    def get_players(self):
+    def get_players(self) -> List[str]:
         return [self.get_player_name(p) for p in self.raw_dict['participants']]
 
-    async def get_top8(self):
+    async def get_top8(self) -> Optional[List]:
         await self.get_raw()
         if self.get_state() != 'complete':
             return None
@@ -212,11 +212,11 @@ class Challonge(object):
         for p in self.raw_dict['participants']:
             rank = p['participant']['final_rank']
             if rank <= 7:
-                top8[rank].append(self.get_player(p))
+                top8[rank].append(self.get_player_name(p))
 
         return sorted(top8.items())
 
-    def get_player(self, tag: str):
+    def get_player(self, tag: str) -> Optional:
         for p in self.raw_dict['participants']:
             name = self.get_player_name(p)
             if utils.istrcmp(tag, name):
