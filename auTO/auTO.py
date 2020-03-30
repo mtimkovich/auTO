@@ -181,14 +181,15 @@ class TOCommands(commands.Cog):
                 self.tourney_stop(ctx)
                 return
             elif e.code == 404:
-                await ctx.send('Invalid tournament URL')
+                await ctx.send(
+                        'Invalid tournament URL or invalid permissions.')
                 self.tourney_stop(ctx)
                 return
             else:
                 raise e
 
         if tourney.gar.get_state() == 'pending':
-            await ctx.send("Tournament hasn't been started yet.")
+            await ctx.send('Click "Start the Tournament" on Challonge.')
             self.tourney_stop(ctx)
             return
         elif tourney.gar.get_state() == 'ended':

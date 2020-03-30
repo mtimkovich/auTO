@@ -75,6 +75,10 @@ class Challonge(object):
     def get_state(self) -> str:
         return self.raw_dict['tournament']['tournament']['state']
 
+    def is_elimination(self) -> bool:
+        return (self.raw_dict['tournament']['tournament']['tournament_type']
+                .endswith('elimination'))
+
     def max_rounds(self):
         for match in self.raw_dict['matches']:
             round_num = match['match']['round']
@@ -167,6 +171,11 @@ class Challonge(object):
             loser_id = m['loser_id']
             suggested_play_order = m['suggested_play_order']
 
+            if self.is_elimination():
+                round_name = self.round_name(round_num)
+            else:
+                round_name = 'R{}'.format(round_num)
+
             if player1_id is None or player2_id is None:
                 continue
 
@@ -186,7 +195,7 @@ class Challonge(object):
                 'player1_id': player1_id,
                 'player2': player2,
                 'player2_id': player2_id,
-                'round': self.round_name(round_num),
+                'round': round_name,
                 'state': state,
                 'suggested_play_order': suggested_play_order,
                 'underway': underway,
