@@ -257,7 +257,7 @@ class Challonge(object):
 
         await self.get_raw()
 
-    async def def dq(self, tag: str):
+    async def dq(self, tag: str):
         url = self.player_url(tag)
         async with self.session.delete(url, data=self.api_key_dict) as r:
             await r.json()

@@ -386,6 +386,7 @@ class TOCommands(commands.Cog):
             msg = await ctx.send('{} has been DQed'.format(user.mention))
             await msg.add_reaction('🇫')
             await tourney.gar.dq(user.display_name)
+            await self.matches(ctx)
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, err):

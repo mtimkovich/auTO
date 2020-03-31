@@ -16,8 +16,8 @@ async def send_list(ctx, the_list) -> List:
         if len(contents) + len(line) + 1 > MAX_CHARS:
             msg = await ctx.send(contents)
             msgs.append(msg)
-            content = ''
-        content += line + '\n'
+            contents = ''
+        contents += line + '\n'
     if contents:
         msg = await ctx.send(contents)
         msgs.append(msg)
