@@ -309,10 +309,11 @@ class TOCommands(commands.Cog):
                 match += ' (Playing)'
             announcement.append(match)
 
-        msg = await utils.send_list(ctx, announcement)
-        if tourney.previous_match_msg is not None:
-            await tourney.previous_match_msg.delete()
-        tourney.previous_match_msg = msg
+        msgs = await utils.send_list(ctx, announcement)
+        if tourney.previous_match_msgs is not None:
+            for msg in tourney.previous_match_msgs:
+                await msg.delete()
+        tourney.previous_match_msgs = msgs
 
     @auTO.command(brief='Report match results')
     @has_tourney

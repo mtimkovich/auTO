@@ -11,7 +11,7 @@ class Tournament(object):
         self.guild = ctx.guild
         self.channel = ctx.channel
         self.owner = ctx.author
-        self.previous_match_msg = None
+        self.previous_match_msgs = None
         self.open_matches = []
         self.called_matches = set()
         self.recently_called = set()
