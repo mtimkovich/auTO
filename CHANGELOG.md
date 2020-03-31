@@ -1,7 +1,12 @@
 # Changelog
 
+### 1.4.6
+* Fix bug in ending tournaments.
+* Split large matches messages.
+* Fix round names for non-elimination tournaments.
+
 ### 1.4.5
-* Add `rename` command for fixing user tags (#16).
+* Add `rename` command for fixing user tags.
 * Catch 500 errors from Challonge.
 
 ### 1.4.0
