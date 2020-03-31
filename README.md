@@ -68,7 +68,9 @@ Please let me know if you use auTO for your tournament: I'd love to hear about i
 ## Bug/Feature Requests
 
 * [File an issue!](https://github.com/mtimkovich/auTO/issues)
-* Message me on Twitter - [@DJSwerveGG][twitter]
+* Message me on:
+  * Twitter: [@DJSwerveGG][twitter]
+  * Discord: DJSwerve#0567
 
 ## Author
 
