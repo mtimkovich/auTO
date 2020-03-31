@@ -56,8 +56,10 @@ the user must be an admin or in a role called "TO".
 | `help`                  | All         | Print the list of commands                           |
 
 ## Used By
-* NL Netplay
+* Dutch Melee Netplay
 * 6 Buffer Saturday
+* Hamburg SSB
+* Chicagoland Melee
 * Pacific Showdown Online
 * MTV Melee
 
