@@ -283,14 +283,6 @@ class TOCommands(commands.Cog):
             await self.end_tournament(ctx, tourney)
             return
 
-        dqees = tourney.get_dqs_in_matches()
-        for dq in dqees:
-            # They have been double eliminated so we don't need to track them
-            # anymore.
-            tourney.dqees.remove(dq)
-            await self.report(ctx, '-1-0', username=dq)
-            return
-
         announcement = []
         for m in sorted(tourney.open_matches,
                         key=lambda m: m['suggested_play_order']):
@@ -393,8 +385,7 @@ class TOCommands(commands.Cog):
         except asyncio.TimeoutError:
             msg = await ctx.send('{} has been DQed'.format(user.mention))
             await msg.add_reaction('🇫')
-            tourney.dqees.add(user.display_name)
-            await self.report(ctx, '-1-0', username=user.display_name)
+            await tourney.gar.dq(user.display_name)
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, err):

@@ -4,6 +4,7 @@
 * Fix bug in ending tournaments.
 * Split large matches messages.
 * Fix round names for non-elimination tournaments.
+* DQ using the Challonge API.
 
 ### 1.4.5
 * Add `rename` command for fixing user tags.

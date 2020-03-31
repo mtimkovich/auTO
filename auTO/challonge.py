@@ -233,13 +233,16 @@ class Challonge(object):
                 return p
         return None
 
-    async def rename(self, tag: str, discord_name: str):
-        """Rename player from |tag| to |discord_name|."""
+    def player_url(self, tag: str) -> str:
         p = self.get_player(tag)
         if p is None:
             raise ValueError("Can't find player with tag: '{}'".format(tag))
         player = p['participant']
-        url = PARTICIPANT_URL.format(self.tournament_id, player['id'])
+        return PARTICIPANT_URL.format(self.tournament_id, player['id'])
+
+    async def rename(self, tag: str, discord_name: str):
+        """Rename player from |tag| to |discord_name|."""
+        url = self.player_url(tag)
         data = self.api_key_dict.copy()
         data['participant[name]'] = discord_name
         try:
@@ -253,6 +256,11 @@ class Challonge(object):
             raise e
 
         await self.get_raw()
+
+    async def def dq(self, tag: str):
+        url = self.player_url(tag)
+        async with self.session.delete(url, data=self.api_key_dict) as r:
+            await r.json()
 
 
 async def main():

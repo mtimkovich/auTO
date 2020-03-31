@@ -15,21 +15,11 @@ class Tournament(object):
         self.open_matches = []
         self.called_matches = set()
         self.recently_called = set()
-        self.dqees = set()
         self.gar = challonge.Challonge(api_key, tournament_id, session)
 
     async def get_open_matches(self):
         matches = await self.gar.get_matches()
         self.open_matches = [m for m in matches if m['state'] == 'open']
-
-    def get_dqs_in_matches(self) -> List[str]:
-        """Check open matches for dqed players."""
-        dqees = []
-        for match in self.open_matches:
-            for dqee in self.dqees:
-                if self.user_in_match(dqee, match):
-                    dqees.append(dqee)
-        return dqees
 
     async def mark_match_underway(self, user1, user2):
         match_id = None
