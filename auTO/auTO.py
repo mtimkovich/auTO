@@ -1,4 +1,5 @@
 import aiohttp
+from aiohttp.client_exceptions import ClientResponseError
 import asyncio
 import discord
 from discord.ext import commands
@@ -175,7 +176,7 @@ class TOCommands(commands.Cog):
         tourney = self.tourney_start(ctx, tournament_id, api_key)
         try:
             await tourney.gar.get_raw()
-        except aiohttp.client_exceptions.ClientResponseError as e:
+        except ClientResponseError as e:
             if e.code == 401:
                 await ctx.author.dm_channel.send('Invalid API Key')
                 self.tourney_stop(ctx)
@@ -234,8 +235,8 @@ class TOCommands(commands.Cog):
 
         try:
             await tourney.gar.finalize()
-        except aiohttp.client_exceptions.ClientResponseError as e:
-            if e == 422:
+        except ClientResponseError as e:
+            if e.code == 422:
                 # Tournament's already finalized.
                 pass
             else:
@@ -394,8 +395,8 @@ class TOCommands(commands.Cog):
         if isinstance(err, commands.CommandNotFound):
             # These are useless and clutter the log.
             return
-        elif isinstance(err, aiohttp.client_exceptions.ClientResponseError):
-            if code == 401:
+        elif isinstance(err, ClientResponseError):
+            if err.code == 401:
                 await ctx.send('Invalid API key.')
             else:
                 await ctx.send('Error connecting to Challonge 💀')

@@ -1,4 +1,5 @@
 import aiohttp
+from aiohttp.client_exceptions import ClientResponseError
 import asyncio
 import collections
 import os
@@ -244,7 +245,7 @@ class Challonge(object):
         try:
             async with self.session.put(url, data=data) as r:
                 await r.json()
-        except aiohttp.client_exceptions.ClientResponseError as e:
+        except ClientResponseError as e:
             if e.code == 422:
                 raise ValueError(
                         "Can't rename '{}' to '{}'. Possible duplicate?"

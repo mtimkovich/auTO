@@ -1,6 +1,6 @@
 # auTO
 
-**auTO** is a Discord bot for running netplay tournaments by calling matches and reporting results.
+auTO is a Discord bot for running netplay tournaments by calling matches and reporting results.
 
 ![auTO Preview][preview]
 
