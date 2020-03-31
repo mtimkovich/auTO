@@ -40,8 +40,12 @@ class TOCommands(commands.Cog):
         self.tournament_map[Tournament.key(ctx)] = tourney
         return tourney
 
-    def tourney_stop(self, ctx):
-        self.tournament_map.pop(Tournament.key(ctx))
+    def tourney_stop(self, ctx=None, guild=None, channel=None):
+        if ctx is None:
+            key = (guild, channel)
+        else:
+            key = Tournament.key(ctx)
+        self.tournament_map.pop(key, None)
 
     @commands.group(case_insensitive=True)
     async def auTO(self, ctx):
@@ -145,11 +149,11 @@ class TOCommands(commands.Cog):
             else:
                 await owner.send('Invalid API key, try again.')
 
-    async def confirm(self, ctx, question) -> bool:
+    async def confirm(self, user, question) -> bool:
         """DM the user a yes/no question."""
-        await ctx.author.send('{} [Y/n]'.format(question))
+        await user.send('{} [Y/n]'.format(question))
         msg = await self.bot.wait_for(
-                'message', check=self.is_dm_response(ctx.author))
+                'message', check=self.is_dm_response(user))
 
         return msg.content.strip().lower() in ['y', 'yes']
 
@@ -200,7 +204,7 @@ class TOCommands(commands.Cog):
 
         has_missing = await tourney.missing_tags(ctx.author)
         if has_missing:
-            confirm = await self.confirm(ctx, 'Continue anyway?')
+            confirm = await self.confirm(ctx.author, 'Continue anyway?')
             if confirm:
                 await self.update_tags(ctx)
             else:
@@ -228,25 +232,26 @@ class TOCommands(commands.Cog):
         await ctx.send('Goodbye 😞')
 
     async def end_tournament(self, ctx, tourney):
-        confirm = await self.confirm(ctx, '{} is completed. Finalize?'
-                                     .format(tourney.gar.get_name()))
+        confirm = await self.confirm(
+                tourney.owner, '{} is completed. Finalize?'
+                .format(tourney.gar.get_name()))
         if not confirm:
             return
 
         try:
             await tourney.gar.finalize()
         except ClientResponseError as e:
-            if e.code == 422:
-                # Tournament's already finalized.
-                pass
-            else:
+            if e.code != 422:
                 raise e
-        await self.results(ctx)
+        await self.print_results(tourney)
 
     @auTO.command()
     @has_tourney
     @is_to
     async def results(self, ctx, *, tourney=None):
+        await self.print_results(tourney)
+
+    async def print_results(self, tourney):
         """Print the results thread."""
         top8 = await tourney.gar.get_top8()
         if top8 is None:
@@ -263,8 +268,8 @@ class TOCommands(commands.Cog):
             players = ' / '.join(map(tourney.mention_user, players))
             message.append('{}. {}'.format(i, players))
 
-        await utils.send_list(ctx, message)
-        self.tourney_stop(ctx)
+        await utils.send_list(tourney.channel, message)
+        self.tourney_stop(guild=tourney.guild, channel=tourney.channel)
         await self.bot.change_presence()
 
     @auTO.command()

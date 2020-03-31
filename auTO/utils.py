@@ -7,6 +7,8 @@ def istrcmp(a: str, b: str) -> bool:
 
 async def send_list(ctx, the_list):
     """Send multi-line messages."""
+    # TODO(#20): Split into multiple messages if message is longer than 2000
+    # characters.
     return await ctx.send('\n'.join(the_list))
 
 
