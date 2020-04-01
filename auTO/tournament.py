@@ -9,6 +9,7 @@ class Tournament(object):
     """Tournaments are unique to a guild + channel."""
     def __init__(self, ctx, tournament_id, api_key, session):
         self.guild = ctx.guild
+        # The channel where matches are posted.
         self.channel = ctx.channel
         self.owner = ctx.author
         self.previous_match_msgs = None
@@ -90,7 +91,3 @@ class Tournament(object):
             message.append('- {}'.format(p))
         await utils.send_list(dms, message)
         return True
-
-    @classmethod
-    def key(cls, ctx):
-        return ctx.guild, ctx.channel

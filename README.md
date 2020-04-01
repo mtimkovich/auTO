@@ -12,7 +12,6 @@ auTO can only manage tournaments ran through [Challonge](https://challonge.com).
 * *Melee:* Mark matches as in progress when players post netplay codes in the chat.
 * Players can report their own matches without going through the TO.
 * TOs can start auto DQ timer for missing players (`noshow`).
-* Run multiple tournaments on the same server.
 
 ## Setup
 

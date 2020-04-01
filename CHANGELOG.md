@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.4.7
+* Allow commands from any channel.
+
 ### 1.4.6
 * Fix bug in ending tournaments.
 * Split large matches messages.

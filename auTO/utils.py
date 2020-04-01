@@ -6,7 +6,7 @@ def istrcmp(a: str, b: str) -> bool:
     return a.lower() == b.lower()
 
 
-async def send_list(ctx, the_list) -> List:
+async def send_list(ctx: discord.abc.Messageable, the_list: List[str]) -> List:
     """Send multi-line messages. Split messages longer than 2000 characters."""
     MAX_CHARS = 2000
     contents = ''

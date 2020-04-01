@@ -28,24 +28,13 @@ class TOCommands(commands.Cog):
         await self.bot.wait_until_ready()
         self.session = aiohttp.ClientSession(raise_for_status=True)
 
-    def get_tourney(self, ctx=None, guild=None, channel=None):
-        if ctx is None:
-            key = (guild, channel)
-        else:
-            key = Tournament.key(ctx)
-        return self.tournament_map.get(key)
-
     def tourney_start(self, ctx, tournament_id, api_key):
         tourney = Tournament(ctx, tournament_id, api_key, self.session)
-        self.tournament_map[Tournament.key(ctx)] = tourney
+        self.tournament_map[ctx.guild] = tourney
         return tourney
 
-    def tourney_stop(self, ctx=None, guild=None, channel=None):
-        if ctx is None:
-            key = (guild, channel)
-        else:
-            key = Tournament.key(ctx)
-        self.tournament_map.pop(key, None)
+    def tourney_stop(self, guild):
+        self.tournament_map.pop(guild, None)
 
     @commands.group(case_insensitive=True)
     async def auTO(self, ctx):
@@ -72,7 +61,7 @@ class TOCommands(commands.Cog):
         @functools.wraps(func)
         async def wrapper(self, *args, **kwargs):
             ctx = args[0]
-            tourney = self.get_tourney(ctx)
+            tourney = self.tournament_map.get(ctx.guild)
             if tourney is None:
                 await ctx.send('No tournament running')
                 return
@@ -160,7 +149,7 @@ class TOCommands(commands.Cog):
     @auTO.command(brief='Challonge URL of tournament')
     async def start(self, ctx, url: str):
         """Sets tournament URL and start calling matches."""
-        if self.get_tourney(ctx) is not None:
+        if self.tournament_map.get(ctx.guild) is not None:
             await ctx.send('A tournament is already in progress')
             return
 
@@ -183,23 +172,23 @@ class TOCommands(commands.Cog):
         except ClientResponseError as e:
             if e.code == 401:
                 await ctx.author.dm_channel.send('Invalid API Key')
-                self.tourney_stop(ctx)
+                self.tourney_stop(ctx.guild)
                 return
             elif e.code == 404:
                 await ctx.send(
                         'Invalid tournament URL or invalid permissions.')
-                self.tourney_stop(ctx)
+                self.tourney_stop(ctx.guild)
                 return
             else:
                 raise e
 
         if tourney.gar.get_state() == 'pending':
             await ctx.send('Click "Start the Tournament" on Challonge.')
-            self.tourney_stop(ctx)
+            self.tourney_stop(ctx.guild)
             return
         elif tourney.gar.get_state() == 'ended':
             await ctx.send("Tournament has already finished.")
-            self.tourney_stop(ctx)
+            self.tourney_stop(ctx.guild)
             return
 
         has_missing = await tourney.missing_tags(ctx.author)
@@ -208,14 +197,14 @@ class TOCommands(commands.Cog):
             if confirm:
                 await self.update_tags(ctx)
             else:
-                self.tourney_stop(ctx)
+                self.tourney_stop(ctx.guild)
                 return
 
         activity = discord.Activity(name='Dolphin',
                                     type=discord.ActivityType.watching)
         await self.bot.change_presence(activity=activity)
 
-        await ctx.trigger_typing()
+        await tourney.channel.trigger_typing()
         logging.info('Starting tournament {} on {}'.format(
             tourney.gar.get_name(), tourney.guild.name))
         start_msg = await ctx.send('Starting {}! {}'.format(
@@ -227,7 +216,7 @@ class TOCommands(commands.Cog):
     @has_tourney
     @is_to
     async def stop(self, ctx, *, tourney=None):
-        self.tourney_stop(ctx)
+        self.tourney_stop(ctx.guild)
         await self.bot.change_presence()
         await ctx.send('Goodbye 😞')
 
@@ -269,14 +258,14 @@ class TOCommands(commands.Cog):
             message.append('{}. {}'.format(i, players))
 
         await utils.send_list(tourney.channel, message)
-        self.tourney_stop(guild=tourney.guild, channel=tourney.channel)
+        self.tourney_stop(tourney.guild)
         await self.bot.change_presence()
 
     @auTO.command()
     @has_tourney
     async def matches(self, ctx, *, tourney=None):
         """Checks for match updates and prints matches to the channel."""
-        await ctx.trigger_typing()
+        await tourney.channel.trigger_typing()
         await tourney.get_open_matches()
 
         if not tourney.open_matches:
@@ -301,7 +290,7 @@ class TOCommands(commands.Cog):
                 match += ' (Playing)'
             announcement.append(match)
 
-        msgs = await utils.send_list(ctx, announcement)
+        msgs = await utils.send_list(tourney.channel, announcement)
         if tourney.previous_match_msgs is not None:
             for msg in tourney.previous_match_msgs:
                 await msg.delete()
@@ -353,7 +342,6 @@ class TOCommands(commands.Cog):
         else:
             winner_id = match['player2_id']
 
-        await ctx.trigger_typing()
         await tourney.report_match(match, winner_id, username, scores_csv)
         await self.matches(ctx)
 
@@ -367,23 +355,25 @@ class TOCommands(commands.Cog):
     @has_tourney
     @is_to
     async def noshow(self, ctx, user: discord.Member, *, tourney=None):
-        await ctx.trigger_typing()
+        await tourney.channel.trigger_typing()
         match = tourney.find_match(user.display_name)
         if match is None:
-            await ctx.send('{} does not have a match to be DQed from.'
-                           .format(user.display_name))
+            await tourney.channel.send(
+                    '{} does not have a match to be DQed from.'
+                    .format(user.display_name))
             return
 
-        await ctx.send('{}: message in the chat and start playing your match '
-                       'within 5 minutes or you will be DQed.'
-                       .format(user.mention))
+        await tourney.channel.send(
+                '{}: message in the chat and start playing your match within '
+                '5 minutes or you will be DQed.'.format(user.mention))
         try:
             FIVE_MINUTES = 5 * 60
             await self.bot.wait_for(
                     'message', check=lambda m: m.author == user,
                     timeout=FIVE_MINUTES)
         except asyncio.TimeoutError:
-            msg = await ctx.send('{} has been DQed'.format(user.mention))
+            msg = await tourney.channel.send(
+                    '{} has been DQed'.format(user.mention))
             await msg.add_reaction('🇫')
             await tourney.gar.dq(user.display_name)
             await self.matches(ctx)
@@ -416,8 +406,7 @@ class TOCommands(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        tourney = self.get_tourney(guild=message.guild,
-                                   channel=message.channel)
+        tourney = self.tournament_map.get(message.guild)
         if tourney is None:
             return
 
