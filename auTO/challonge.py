@@ -147,7 +147,13 @@ class Challonge(object):
         url = os.path.join(BASE_CHALLONGE_API_URL, self.tournament_id,
                            'finalize.json')
         async with self.session.post(url, data=self.api_key_dict) as r:
-            return await r.json()
+            await r.json()
+
+    async def start(self):
+        url = os.path.join(BASE_CHALLONGE_API_URL, self.tournament_id,
+                           'start.json')
+        async with self.session.post(url, data=self.api_key_dict) as r:
+            await r.json()
 
     async def get_matches(self) -> List:
         """Fetch latest match data."""

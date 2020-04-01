@@ -183,9 +183,7 @@ class TOCommands(commands.Cog):
                 raise e
 
         if tourney.gar.get_state() == 'pending':
-            await ctx.send('Click "Start the Tournament" on Challonge.')
-            self.tourney_stop(ctx.guild)
-            return
+            await tourney.start()
         elif tourney.gar.get_state() == 'ended':
             await ctx.send("Tournament has already finished.")
             self.tourney_stop(ctx.guild)

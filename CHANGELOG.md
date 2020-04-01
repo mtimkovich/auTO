@@ -2,6 +2,7 @@
 
 ### 1.4.7
 * Allow commands from any channel.
+* Start tournament if it's pending.
 
 ### 1.4.6
 * Fix bug in ending tournaments.
