@@ -28,6 +28,9 @@ class TOCommands(commands.Cog):
         await self.bot.wait_until_ready()
         self.session = aiohttp.ClientSession(raise_for_status=True)
 
+    async def close(self):
+        await self.session.close()
+
     def tourney_start(self, ctx, tournament_id, api_key):
         tourney = Tournament(ctx, tournament_id, api_key, self.session)
         self.tournament_map[ctx.guild] = tourney
@@ -183,13 +186,14 @@ class TOCommands(commands.Cog):
                 raise e
 
         if tourney.gar.get_state() == 'pending':
-            await tourney.start()
+            await tourney.gar.start()
         elif tourney.gar.get_state() == 'ended':
             await ctx.send("Tournament has already finished.")
             self.tourney_stop(ctx.guild)
             return
 
-        has_missing = await tourney.missing_tags(ctx.author)
+        # has_missing = await tourney.missing_tags(ctx.author)
+        has_missing = False
         if has_missing:
             confirm = await self.confirm(ctx.author, 'Continue anyway?')
             if confirm:
@@ -418,9 +422,19 @@ class TOCommands(commands.Cog):
                     message.mentions[0], message.author)
 
 
+class Bot(commands.Bot):
+    """Custom close method."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    async def close(self):
+        await self.get_cog('TOCommands').close()
+        await super().close()
+
+
 def main():
-    bot = commands.Bot(command_prefix='!', description='Talk to the TO',
-                       case_insensitive=True)
+    bot = Bot(command_prefix='!', description='Talk to the TO',
+              case_insensitive=True)
     bot.add_cog(TOCommands(bot))
     bot.run(config.get('DISCORD_TOKEN'))
 

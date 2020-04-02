@@ -16,6 +16,7 @@ class Tournament(object):
         self.open_matches = []
         self.called_matches = set()
         self.recently_called = set()
+        self.api_key = api_key
         self.gar = challonge.Challonge(api_key, tournament_id, session)
 
     async def get_open_matches(self):
