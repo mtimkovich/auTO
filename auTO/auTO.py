@@ -23,12 +23,8 @@ PICKLE_FILE = 'auTO.pickle'
 class TOCommands(commands.Cog):
     def __init__(self, bot, saved):
         self.bot = bot
-        self.session = None
         self.saved = saved
         self.tournament_map = {}
-        self.bot.loop.create_task(self.create_session())
-
-    async def create_session(self):
         self.session = aiohttp.ClientSession(raise_for_status=True)
 
     def save(self):
