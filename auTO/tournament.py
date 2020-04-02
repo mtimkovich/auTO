@@ -5,6 +5,25 @@ from . import challonge
 from . import utils
 
 
+class FakeContext(object):
+    def __init__(self, guild, saved):
+        self.guild = guild
+        self.channel = guild.get_channel(saved.channel_id)
+        self.author = guild.get_member(saved.owner_id)
+
+        if not (self.guild or self.channel or self.author):
+            raise ValueError('Error loading tournament')
+
+
+class TournamentPickle(object):
+    """Pickleable version of Tournament."""
+    def __init__(self, tourney):
+        self.channel_id = tourney.channel.id
+        self.owner_id = tourney.owner.id
+        self.tournament_id = tourney.gar.tournament_id
+        self.api_key = tourney.gar.api_key
+
+
 class Tournament(object):
     """Tournaments are unique to a guild + channel."""
     def __init__(self, ctx, tournament_id, api_key, session):
@@ -16,7 +35,6 @@ class Tournament(object):
         self.open_matches = []
         self.called_matches = set()
         self.recently_called = set()
-        self.api_key = api_key
         self.gar = challonge.Challonge(api_key, tournament_id, session)
 
     async def get_open_matches(self):

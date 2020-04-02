@@ -8,20 +8,22 @@ import logging
 import pickle
 import re
 from typing import Optional
-import yaml
 
 from . import challonge
 from . config import config
 from . import utils
-from . tournament import Tournament
+from . tournament import Tournament, TournamentPickle, FakeContext
 
 logging.basicConfig(level=logging.INFO)
 
+PICKLE_FILE = 'auTO.pickle'
+
 
 class TOCommands(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot, saved):
         self.bot = bot
         self.session = None
+        self.saved = saved
         self.tournament_map = {}
         self.bot.loop.create_task(self.create_session())
 
@@ -30,15 +32,14 @@ class TOCommands(commands.Cog):
         self.session = aiohttp.ClientSession(raise_for_status=True)
 
     def save(self):
+        if not self.tournament_map:
+            return
         tournament_pickle = {}
         for tourney in self.tournament_map.values():
-            tournament_pickle[tourney.guild.id] = {
-                'channel': tourney.channel.id,
-                'owner': tourney.owner.id,
-                'api_key': tourney.api_key,
-            }
-        with open('auTO.pickle', 'wb') as f:
+            tournament_pickle[tourney.guild.id] = TournamentPickle(tourney)
+        with open(PICKLE_FILE, 'wb') as f:
             pickle.dump(tournament_pickle, f)
+        logging.info('Saved active tournaments.')
 
     async def close(self):
         self.save()
@@ -192,7 +193,7 @@ class TOCommands(commands.Cog):
                 return
             elif e.code == 404:
                 await ctx.send(
-                        'Invalid tournament URL or invalid permissions.')
+                        'Invalid tournament URL.')
                 self.tourney_stop(ctx.guild)
                 return
             else:
@@ -414,9 +415,27 @@ class TOCommands(commands.Cog):
         else:
             await ctx.send(err)
 
+    async def load(self):
+        if not self.saved:
+            return
+        for guild in self.bot.guilds:
+            if guild.id not in self.saved:
+                continue
+            saved = self.saved[guild.id]
+            try:
+                ctx = FakeContext(guild, saved)
+            except ValueError as e:
+                logging.warning(e)
+                continue
+            tourney = self.tourney_start(
+                    ctx, saved.tournament_id, saved.api_key)
+            await tourney.gar.get_raw()
+        logging.info('Loaded saved tournaments.')
+
     @commands.Cog.listener()
     async def on_ready(self):
-        logging.info('auTO has connected to Discord')
+        logging.info('auTO has connected to Discord.')
+        await self.load()
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -440,10 +459,29 @@ class Bot(commands.Bot):
         await super().close()
 
 
+def load_tournaments():
+    saved = {}
+    try:
+        with open(PICKLE_FILE, 'rb') as f:
+            saved = pickle.load(f)
+    except OSError:
+        pass
+    except Exception as e:
+        logging.warning('Error unpickling: {}'.format(e))
+
+    try:
+        os.remove(PICKLE_FILE)
+    except OSError:
+        pass
+
+    return saved
+
+
 def main():
+    saved = load_tournaments()
     bot = Bot(command_prefix='!', description='Talk to the TO',
               case_insensitive=True)
-    bot.add_cog(TOCommands(bot))
+    bot.add_cog(TOCommands(bot, saved))
     bot.run(config.get('DISCORD_TOKEN'))
 
 

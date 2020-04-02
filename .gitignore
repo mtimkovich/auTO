@@ -2,3 +2,4 @@ env/
 *.swp
 __pycache__
 config.yml
+*.pickle
