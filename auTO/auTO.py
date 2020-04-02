@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 import functools
 import logging
+import pickle
 import re
 from typing import Optional
 import yaml
@@ -28,7 +29,19 @@ class TOCommands(commands.Cog):
         await self.bot.wait_until_ready()
         self.session = aiohttp.ClientSession(raise_for_status=True)
 
+    def save(self):
+        tournament_pickle = {}
+        for tourney in self.tournament_map.values():
+            tournament_pickle[tourney.guild.id] = {
+                'channel': tourney.channel.id,
+                'owner': tourney.owner.id,
+                'api_key': tourney.api_key,
+            }
+        with open('auTO.pickle', 'wb') as f:
+            pickle.dump(tournament_pickle, f)
+
     async def close(self):
+        self.save()
         await self.session.close()
 
     def tourney_start(self, ctx, tournament_id, api_key):
