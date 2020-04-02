@@ -192,8 +192,7 @@ class TOCommands(commands.Cog):
             self.tourney_stop(ctx.guild)
             return
 
-        # has_missing = await tourney.missing_tags(ctx.author)
-        has_missing = False
+        has_missing = await tourney.missing_tags(ctx.author)
         if has_missing:
             confirm = await self.confirm(ctx.author, 'Continue anyway?')
             if confirm:
@@ -423,10 +422,6 @@ class TOCommands(commands.Cog):
 
 
 class Bot(commands.Bot):
-    """Custom close method."""
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     async def close(self):
         await self.get_cog('TOCommands').close()
         await super().close()
