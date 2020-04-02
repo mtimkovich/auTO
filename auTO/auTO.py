@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 import functools
 import logging
+import os
 import pickle
 import re
 from typing import Optional
