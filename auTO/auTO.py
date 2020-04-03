@@ -7,6 +7,7 @@ import functools
 import logging
 import os
 import pickle
+from random import random
 import re
 from typing import Optional
 
@@ -52,7 +53,7 @@ class TOCommands(commands.Cog):
     @commands.group(case_insensitive=True)
     async def auTO(self, ctx):
         if ctx.invoked_subcommand is None:
-            await ctx.send('Use `!auto help` for options')
+            await ctx.send('Use `!auTO help` for options')
 
     @auTO.command()
     async def help(self, ctx):
@@ -64,7 +65,7 @@ class TOCommands(commands.Cog):
             '- `update_tags` - get the latest Challonge tags',
             '- `report 0-2` - report a match',
             '- `matches` - print the active matches',
-            '- `status` - show how far along the tournament is',
+            '- `status` - print how far along the tournament is',
             '- `bracket` - print the bracket URL',
         ]
         await utils.send_list(ctx, help_list)
@@ -218,8 +219,9 @@ class TOCommands(commands.Cog):
         await tourney.channel.trigger_typing()
         logging.info('Starting tournament {} on {}'.format(
             tourney.gar.get_name(), tourney.guild.name))
-        start_msg = await ctx.send('Starting {}! {}'.format(
-            tourney.gar.get_name(), tourney.gar.get_url()))
+        start_msg = await ctx.send(
+                'Starting {}! Please stop your friendlies. {}'
+                .format(tourney.gar.get_name(), tourney.gar.get_url()))
         await start_msg.pin()
         await self.matches(ctx)
 
@@ -280,6 +282,7 @@ class TOCommands(commands.Cog):
         await tourney.get_open_matches()
 
         if not tourney.open_matches:
+            await tourney.channel.send('Tournament has finished!')
             await self.end_tournament(ctx, tourney)
             return
 
@@ -294,11 +297,18 @@ class TOCommands(commands.Cog):
             if m['id'] not in tourney.called_matches:
                 player1 = tourney.mention_user(player1)
                 player2 = tourney.mention_user(player2)
-                tourney.called_matches.add(m['id'])
+                tourney.called_matches[m['id']] = random() < .5
 
-            match = '**{}**: {} vs {}'.format(m['round'], player1, player2)
+            # Reverse the player order for RPS winner.
+            if tourney.called_matches[m['id']]:
+                player1, player2 = player2, player1
+
+            match = '**{}**: '.format(m['round'])
+
             if m['underway']:
-                match += ' (Playing)'
+                match += '*{} vs {}*'.format(player1, player2)
+            else:
+                match += '{} vs {}'.format(player1, player2)
             announcement.append(match)
 
         msgs = await utils.send_list(tourney.channel, announcement)
@@ -311,9 +321,10 @@ class TOCommands(commands.Cog):
     @has_tourney
     async def report(self, ctx, scores_csv: str, *, tourney=None,
                      username=None):
+        await ctx.trigger_typing()
         score_match = re.match(r'(-?\d+)-(-?\d+)', scores_csv)
         if not score_match:
-            await ctx.send('Invalid report. Should be `!auto report 0-2`')
+            await ctx.send('Invalid report. Should be `!auTO report 0-2`')
             return
 
         scores = list(map(int, score_match.groups()))

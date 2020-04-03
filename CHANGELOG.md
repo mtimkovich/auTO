@@ -2,6 +2,7 @@
 
 ### 1.4.8
 * Restore tournaments after auTO restart.
+* Player order is randomized for automatic RPS.
 
 ### 1.4.7
 * Allow commands from any channel.

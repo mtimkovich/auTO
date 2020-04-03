@@ -33,7 +33,7 @@ class Tournament(object):
         self.owner = ctx.author
         self.previous_match_msgs = None
         self.open_matches = []
-        self.called_matches = set()
+        self.called_matches = {}
         self.recently_called = set()
         self.gar = challonge.Challonge(api_key, tournament_id, session)
 
@@ -83,10 +83,7 @@ class Tournament(object):
         await self.add_to_recently_called(match, reporter)
         await self.gar.report_match(
                 match['id'], winner_id, scores_csv)
-        try:
-            self.called_matches.remove(match['id'])
-        except KeyError:
-            pass
+        self.called_matches.pop(match['id'], None)
 
     async def add_to_recently_called(self, match, reporter):
         """Prevent both players from reporting at the same time."""
