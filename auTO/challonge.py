@@ -96,6 +96,9 @@ class Challonge(object):
         prefix = 'W' if round_num > 0 else 'L'
         suffix = 'R{}'.format(abs(round_num))
 
+        if self.winners_rounds is None or self.losers_rounds is None:
+            return '{}{}'.format(prefix, suffix)
+
         if round_num == self.winners_rounds:
             return 'GF'
         elif (round_num == self.winners_rounds - 1 or
