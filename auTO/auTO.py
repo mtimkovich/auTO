@@ -426,9 +426,9 @@ class TOCommands(commands.Cog):
         if not self.saved:
             return
         for guild in self.bot.guilds:
-            if guild.id not in self.saved:
+            saved = self.saved.get(guild.id)
+            if not saved:
                 continue
-            saved = self.saved[guild.id]
             try:
                 ctx = FakeContext(guild, saved)
             except ValueError as e:

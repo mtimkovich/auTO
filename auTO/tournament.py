@@ -1,5 +1,4 @@
 import asyncio
-from typing import List
 
 from . import challonge
 from . import utils
