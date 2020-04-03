@@ -304,12 +304,11 @@ class TOCommands(commands.Cog):
                 player1, player2 = player2, player1
 
             match = '**{}**: '.format(m['round'])
+            players = '{} vs {}'.format(player1, player2)
 
             if m['underway']:
-                match += '*{} vs {}*'.format(player1, player2)
-            else:
-                match += '{} vs {}'.format(player1, player2)
-            announcement.append(match)
+                players = '*{}*'.format(players)
+            announcement.append(match + players)
 
         msgs = await utils.send_list(tourney.channel, announcement)
         if tourney.previous_match_msgs is not None:
