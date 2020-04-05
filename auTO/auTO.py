@@ -77,7 +77,7 @@ class TOCommands(commands.Cog):
             ctx = args[0]
             tourney = self.tournament_map.get(ctx.guild)
             if tourney is None:
-                await ctx.send('No tournament running')
+                await ctx.send('No tournament running.')
                 return
             kwargs['tourney'] = tourney
             return await func(self, *args, **kwargs)
@@ -197,7 +197,15 @@ class TOCommands(commands.Cog):
                 raise e
 
         if tourney.gar.get_state() == 'pending':
-            await tourney.gar.start()
+            try:
+                await tourney.gar.start()
+            except ClientResponseError as e:
+                if e.code == 422:
+                    await ctx.send('Tournament needs at least 2 players.')
+                else:
+                    raise e
+                self.tourney_stop(ctx.guild)
+                return
         elif tourney.gar.get_state() == 'ended':
             await ctx.send("Tournament has already finished.")
             self.tourney_stop(ctx.guild)
