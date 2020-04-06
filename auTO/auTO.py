@@ -306,6 +306,7 @@ class TOCommands(commands.Cog):
             if m['id'] not in tourney.called_matches:
                 match = Match(tourney.guild, player1, player2)
                 tourney.called_matches[m['id']] = match
+                # TODO: Check if we have permission to create channels.
                 await match.create_channels()
 
             match = tourney.called_matches[m['id']]

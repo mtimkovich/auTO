@@ -1,5 +1,9 @@
 # Changelog
 
+### 1.5.0
+* Create private voice and text channels for each match if granted the "Manage Channels"
+  permission.
+
 ### 1.4.8
 * Restore tournaments after auTO restart.
 * Player order is randomized for automatic RPS.

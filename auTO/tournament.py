@@ -95,14 +95,15 @@ class Match(object):
         if text is None:
             text = await self.guild.create_text_channel(
                 self.channel_name(), category=self.category)
+            self.channels.append(text)
 
         if not utils.get_channel(
                 self.guild, self.channel_name(), utils.ChannelType.VOICE):
             self.channels.append(await self.guild.create_voice_channel(
                 self.channel_name(), category=self.category))
-            self.channels.append(text)
 
-        await text.send(self.name(True))
+        await text.send('Private channel for {}. Report results with '
+                        '`!auTO report 0-2`.'.format(self.name(True)))
 
     async def close(self):
         for c in self.channels:
