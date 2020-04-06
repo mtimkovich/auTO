@@ -304,10 +304,9 @@ class TOCommands(commands.Cog):
             # We want to only ping players the first time their match is
             # called.
             if m['id'] not in tourney.called_matches:
-                match = Match(tourney.guild, player1, player2)
+                match = Match(tourney, player1, player2)
                 tourney.called_matches[m['id']] = match
-                if tourney.permissions().manage_channels:
-                    await match.create_channels()
+                await match.create_channels()
 
             match = tourney.called_matches[m['id']]
             round = '**{}**: '.format(m['round'])
