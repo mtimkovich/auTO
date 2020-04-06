@@ -1,4 +1,7 @@
 import asyncio
+import discord
+from random import random
+from typing import Optional
 
 from . import challonge
 from . import utils
@@ -21,6 +24,91 @@ class TournamentPickle(object):
         self.owner_id = tourney.owner.id
         self.tournament_id = tourney.gar.tournament_id
         self.api_key = tourney.gar.api_key
+
+
+class Match(object):
+    category = None
+
+    def __init__(self, guild, player1_tag: str, player2_tag: str):
+        if random() < .5:
+            player1_tag, player2_tag = player2_tag, player1_tag
+        self.guild = guild
+        self.player1_tag = player1_tag
+        self.player2_tag = player2_tag
+        self.player1 = utils.get_user(self.guild, player1_tag)
+        self.player2 = utils.get_user(self.guild, player2_tag)
+        self.first = True
+        self.channels = []
+
+    def tag(self, player: Optional[discord.Member], tag: str,
+            mention: bool) -> str:
+        if player is None:
+            return tag
+        elif mention:
+            return player.mention
+        else:
+            return player.display_name
+
+    def name(self, mention: bool = False) -> str:
+        player1 = self.tag(self.player1, self.player1_tag, mention)
+        player2 = self.tag(self.player2, self.player2_tag, mention)
+        return '{} vs {}'.format(player1, player2)
+
+    def channel_name(self) -> str:
+        return self.name().lower().replace(' ', '-')
+
+    async def create_channels(self):
+        if not self.player1 or not self.player2:
+            return
+        default = discord.PermissionOverwrite(
+                read_messages=False,
+                send_messages=False,
+                connect=True,
+                speak=False,
+        )
+        player = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                add_reactions=True,
+                stream=True
+        )
+        overwrites = {
+            self.guild.default_role: default,
+            self.guild.me: player,
+            self.player1: player,
+            self.player2: player,
+        }
+
+        to_role = utils.get_role(self.guild, 'TO')
+        if to_role is not None:
+            overwrites[to_role] = player
+
+        if self.category is None:
+            self.category = await self.guild.create_category(
+                    'matches', overwrites=overwrites)
+
+        # Check if text or voice channels already exist.
+        text = utils.get_channel(
+                self.guild, self.channel_name(), utils.ChannelType.TEXT)
+        if text is None:
+            text = await self.guild.create_text_channel(
+                self.channel_name(), category=self.category)
+
+        if not utils.get_channel(
+                self.guild, self.channel_name(), utils.ChannelType.VOICE):
+            self.channels.append(await self.guild.create_voice_channel(
+                self.channel_name(), category=self.category))
+            self.channels.append(text)
+
+        await text.send(self.name(True))
+
+    async def close(self):
+        for c in self.channels:
+            await c.delete()
+        if self.category:
+            await self.category.delete()
 
 
 class Tournament(object):
@@ -58,31 +146,20 @@ class Tournament(object):
         return username.lower() in map(lambda s: s.lower(), [match['player1'],
                                        match['player2']])
 
-    def find_match(self, username):
+    def find_match(self, username) -> Optional:
         for match in self.open_matches:
             if self.user_in_match(username, match):
                 return match
-        else:
-            return None
-
-    def mention_user(self, username: str) -> str:
-        """Gets the user mention string. If the user isn't found, just return
-        the username."""
-        for member in self.guild.members:
-            if utils.istrcmp(member.display_name, username):
-                return member.mention
-        return username
-
-    def has_user(self, username: str) -> bool:
-        """Finds if username is on the server."""
-        return any(utils.istrcmp(m.display_name, username)
-                   for m in self.guild.members)
+        return None
 
     async def report_match(self, match, winner_id, reporter, scores_csv):
         await self.add_to_recently_called(match, reporter)
         await self.gar.report_match(
                 match['id'], winner_id, scores_csv)
-        self.called_matches.pop(match['id'], None)
+        match_obj = self.called_matches.get(match['id'])
+        if match_obj:
+            await match_obj.close()
+            self.called_matches.pop(match['id'])
 
     async def add_to_recently_called(self, match, reporter):
         """Prevent both players from reporting at the same time."""
@@ -98,7 +175,7 @@ class Tournament(object):
         """Check the participants list for players not on the server."""
         dms = await utils.get_dms(owner)
         missing = [player for player in self.gar.get_players()
-                   if not self.has_user(player)]
+                   if not utils.get_user(self.guild, player)]
         if not missing:
             return False
         message = ['Missing Discord accounts for the following players:']
@@ -106,3 +183,7 @@ class Tournament(object):
             message.append('- {}'.format(p))
         await utils.send_list(dms, message)
         return True
+
+    async def stop(self):
+        for match in self.called_matches.values():
+            await match.close()

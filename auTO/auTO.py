@@ -7,14 +7,13 @@ import functools
 import logging
 import os
 import pickle
-from random import random
 import re
 from typing import Optional
 
 from . import challonge
-from . config import config
+from .config import config
 from . import utils
-from . tournament import Tournament, TournamentPickle, FakeContext
+from .tournament import Tournament, TournamentPickle, FakeContext, Match
 
 logging.basicConfig(level=logging.INFO)
 
@@ -47,8 +46,10 @@ class TOCommands(commands.Cog):
         self.tournament_map[ctx.guild] = tourney
         return tourney
 
-    def tourney_stop(self, guild):
-        self.tournament_map.pop(guild, None)
+    async def tourney_stop(self, guild):
+        tourney = self.tournament_map.pop(guild, None)
+        if tourney is not None:
+            await tourney.stop()
 
     @commands.group(case_insensitive=True)
     async def auTO(self, ctx):
@@ -186,12 +187,12 @@ class TOCommands(commands.Cog):
         except ClientResponseError as e:
             if e.code == 401:
                 await ctx.author.dm_channel.send('Invalid API Key')
-                self.tourney_stop(ctx.guild)
+                await self.tourney_stop(ctx.guild)
                 return
             elif e.code == 404:
                 await ctx.send(
                         'Invalid tournament URL.')
-                self.tourney_stop(ctx.guild)
+                await self.tourney_stop(ctx.guild)
                 return
             else:
                 raise e
@@ -204,11 +205,11 @@ class TOCommands(commands.Cog):
                     await ctx.send('Tournament needs at least 2 players.')
                 else:
                     raise e
-                self.tourney_stop(ctx.guild)
+                await self.tourney_stop(ctx.guild)
                 return
         elif tourney.gar.get_state() == 'ended':
             await ctx.send("Tournament has already finished.")
-            self.tourney_stop(ctx.guild)
+            await self.tourney_stop(ctx.guild)
             return
 
         has_missing = await tourney.missing_tags(ctx.author)
@@ -217,7 +218,7 @@ class TOCommands(commands.Cog):
             if confirm:
                 await self.update_tags(ctx)
             else:
-                self.tourney_stop(ctx.guild)
+                await self.tourney_stop(ctx.guild)
                 return
 
         activity = discord.Activity(name='Dolphin',
@@ -237,7 +238,7 @@ class TOCommands(commands.Cog):
     @has_tourney
     @is_to
     async def stop(self, ctx, *, tourney=None):
-        self.tourney_stop(ctx.guild)
+        await self.tourney_stop(ctx.guild)
         await self.bot.change_presence()
         await ctx.send('Goodbye 😞')
 
@@ -279,7 +280,7 @@ class TOCommands(commands.Cog):
             message.append('{}. {}'.format(i, players))
 
         await utils.send_list(tourney.channel, message)
-        self.tourney_stop(tourney.guild)
+        await self.tourney_stop(tourney.guild)
         await self.bot.change_presence()
 
     @auTO.command()
@@ -303,20 +304,21 @@ class TOCommands(commands.Cog):
             # We want to only ping players the first time their match is
             # called.
             if m['id'] not in tourney.called_matches:
-                player1 = tourney.mention_user(player1)
-                player2 = tourney.mention_user(player2)
-                tourney.called_matches[m['id']] = random() < .5
+                match = Match(tourney.guild, player1, player2)
+                tourney.called_matches[m['id']] = match
+                await match.create_channels()
 
-            # Reverse the player order for RPS winner.
-            if tourney.called_matches[m['id']]:
-                player1, player2 = player2, player1
-
-            match = '**{}**: '.format(m['round'])
-            players = '{} vs {}'.format(player1, player2)
+            match = tourney.called_matches[m['id']]
+            round = '**{}**: '.format(m['round'])
+            if match.first:
+                players = match.name(True)
+                match.first = False
+            else:
+                players = match.name()
 
             if m['underway']:
                 players = '*{}*'.format(players)
-            announcement.append(match + players)
+            announcement.append(round + players)
 
         msgs = await utils.send_list(tourney.channel, announcement)
         if tourney.previous_match_msgs is not None:
