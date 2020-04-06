@@ -1,5 +1,5 @@
 import discord
-from enum import Enum
+from enum import Enum, auto
 from typing import List, Optional
 
 
@@ -50,9 +50,9 @@ def get_role(guild, role_name: str) -> Optional[discord.Role]:
 
 
 class ChannelType(Enum):
-    ALL = 1
-    TEXT = 2
-    VOICE = 3
+    ALL = auto()
+    TEXT = auto()
+    VOICE = auto()
 
 
 def get_channel(guild, channel_name: str,

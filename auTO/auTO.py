@@ -306,8 +306,8 @@ class TOCommands(commands.Cog):
             if m['id'] not in tourney.called_matches:
                 match = Match(tourney.guild, player1, player2)
                 tourney.called_matches[m['id']] = match
-                # TODO: Check if we have permission to create channels.
-                await match.create_channels()
+                if tourney.permissions().manage_channels:
+                    await match.create_channels()
 
             match = tourney.called_matches[m['id']]
             round = '**{}**: '.format(m['round'])
@@ -406,7 +406,8 @@ class TOCommands(commands.Cog):
         except asyncio.TimeoutError:
             msg = await tourney.channel.send(
                     '{} has been DQed'.format(user.mention))
-            await msg.add_reaction('🇫')
+            if tourney.permissions().add_reactions:
+                await msg.add_reaction('🇫')
             await tourney.gar.dq(user.display_name)
             await self.matches(ctx)
 

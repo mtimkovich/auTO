@@ -188,3 +188,7 @@ class Tournament(object):
     async def stop(self):
         for match in self.called_matches.values():
             await match.close()
+
+    def permissions(self) -> discord.Permissions:
+        """Gets our permissions on the server."""
+        return self.channel.permissions_for(self.guild.me);
