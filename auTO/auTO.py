@@ -191,8 +191,7 @@ class TOCommands(commands.Cog):
                 await self.tourney_stop(ctx.guild)
                 return
             elif e.code == 404:
-                await ctx.send(
-                        'Invalid tournament URL.')
+                await ctx.send('Invalid tournament URL.')
                 await self.tourney_stop(ctx.guild)
                 return
             else:
@@ -205,9 +204,9 @@ class TOCommands(commands.Cog):
                 if e.code == 422:
                     await ctx.send('Tournament needs at least 2 players.')
                 else:
-                    await self.tourney_stop(ctx.guild)
                     logging.warning(e)
-                    return
+                await self.tourney_stop(ctx.guild)
+                return
         elif tourney.gar.get_state() == 'ended':
             await ctx.send("Tournament has already finished.")
             await self.tourney_stop(ctx.guild)

@@ -56,8 +56,12 @@ class Tournament(object):
         existing_categories = self.get_channels(
                 'matches', ChannelType.category)
         for c in existing_categories:
-            await asyncio.gather(*(chan.delete() for chan in c.channels))
-            await c.delete()
+            try:
+                await asyncio.gather(*(chan.delete() for chan in c.channels))
+                await c.delete()
+            # We can't delete channels not created by us.
+            except discord.errors.Forbidden as e:
+                logging.warning(e)
 
     async def mark_match_underway(self, user1, user2):
         match_id = None
