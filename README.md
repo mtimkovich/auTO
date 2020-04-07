@@ -78,6 +78,6 @@ Please let me know if you use auTO for your tournament: I'd love to hear about i
 Max "DJSwerve" Timkovich
 
 [setup]: https://github.com/mtimkovich/auTO#setup
-[invite]: https://discordapp.com/api/oauth2/authorize?client_id=687888371556548680&permissions=75840&scope=bot
+[invite]: https://discordapp.com/api/oauth2/authorize?client_id=687888371556548680&permissions=75856&scope=bot
 [preview]: https://raw.githubusercontent.com/mtimkovich/auTO/master/img/auTO_preview.png
 [twitter]: https://twitter.com/DJSwerveGG
