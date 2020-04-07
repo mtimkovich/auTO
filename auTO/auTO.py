@@ -426,8 +426,9 @@ class TOCommands(commands.Cog):
         if isinstance(err, commands.CommandNotFound):
             # These are useless and clutter the log.
             return
-        elif isinstance(err, ClientResponseError):
-            if err.code == 401:
+        elif (isinstance(err, commands.errors.CommandInvokeError) and
+                isinstance(err.original, ClientResponseError)):
+            if err.original.code == 401:
                 await ctx.send('Invalid API key.')
             else:
                 await ctx.send('Error connecting to Challonge 💀')
@@ -437,7 +438,6 @@ class TOCommands(commands.Cog):
             return
         elif not isinstance(err, commands.MissingRequiredArgument):
             raise err
-
         if ctx.invoked_subcommand.name == 'start':
             await ctx.send('Tournament URL is required')
         else:
