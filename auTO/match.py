@@ -12,7 +12,6 @@ from . import utils
 default = discord.PermissionOverwrite(
     read_messages=False,
     send_messages=False,
-    speak=False,
     add_reactions=False,
 )
 
