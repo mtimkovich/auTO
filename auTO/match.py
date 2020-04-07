@@ -27,6 +27,8 @@ player_perm = discord.PermissionOverwrite(
 voice_default = discord.PermissionOverwrite(
     view_channel=True,
     connect=True,
+    speak=False,
+    stream=False,
 )
 
 
