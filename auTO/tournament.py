@@ -121,7 +121,7 @@ class Tournament(object):
     def mention_user(self, username: str) -> str:
         """Gets the user mention string. If the user isn't found, just return
         the username."""
-        member = get_user(self.guild, username)
+        member = self.get_user(username)
         if member:
             return member.mention
         return username
