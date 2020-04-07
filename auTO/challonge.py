@@ -51,8 +51,7 @@ class Challonge(object):
     async def get_raw(self):
         self.raw_dict = {}
 
-        for key in URLS.keys():
-            await self.update_data(key)
+        await asyncio.gather(*(self.update_data(key) for key in URLS.keys()))
 
         self.set_player_map()
         self.max_rounds()
