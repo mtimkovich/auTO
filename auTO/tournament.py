@@ -159,5 +159,5 @@ class Tournament(object):
             player2 = m['player2']
             channel_names.add(self.create_channel_name(player1, player2))
             channel_names.add(self.create_channel_name(player2, player1))
-        await asyncio.gather(*(c.delete for c in self.category.channels
+        await asyncio.gather(*(c.delete() for c in self.category.channels
                              if c.name not in channel_names))
