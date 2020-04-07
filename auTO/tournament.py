@@ -1,6 +1,7 @@
 import asyncio
 import discord
 from discord import ChannelType
+from time import time
 from typing import Optional
 
 from . import challonge
@@ -37,7 +38,7 @@ class Tournament(object):
         self.previous_match_msgs = []
         self.open_matches = []
         self.called_matches = {}
-        self.recently_called = set()
+        self.recently_called = {}
         self.category = None
         self.gar = challonge.Challonge(api_key, tournament_id, session)
 
@@ -83,24 +84,30 @@ class Tournament(object):
         return None
 
     async def report_match(self, match, winner_id, reporter, scores_csv):
-        await asyncio.gather(
-            self.add_to_recently_called(match, reporter),
-            self.gar.report_match(match['id'], winner_id, scores_csv)
-        )
+        self.add_to_recently_called(match, reporter),
+        await self.gar.report_match(match['id'], winner_id, scores_csv)
         match_obj = self.called_matches.get(match['id'])
         if match_obj:
             await match_obj.close()
             self.called_matches.pop(match['id'])
 
-    async def add_to_recently_called(self, match, reporter):
+    def add_to_recently_called(self, match, reporter):
         """Prevent both players from reporting at the same time."""
         if utils.istrcmp(match['player1'], reporter):
             other = match['player2']
         else:
             other = match['player1']
-        self.recently_called.add(other)
-        await asyncio.sleep(10)
-        self.recently_called.remove(other)
+        self.recently_called[other] = time()
+
+    def is_duplicate_report(self, reporter: str) -> bool:
+        reporter = reporter.lower()
+        last_report_time = tourney.recently_called.get(reporter)
+        if last_report_time is not None:
+            if time() - last_report_time < 10:
+                return True
+            else:
+                self.recently_called.pop(reporter)
+        return False
 
     async def missing_tags(self, owner) -> bool:
         """Check the participants list for players not on the server."""

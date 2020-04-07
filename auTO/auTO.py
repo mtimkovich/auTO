@@ -363,7 +363,7 @@ class TOCommands(commands.Cog):
         if username is None:
             username = ctx.author.display_name
 
-        if username.lower() in tourney.recently_called:
+        if tourney.is_duplicate_report(username):
             await ctx.send('Ignoring potentially duplicate report. Try again '
                            'in a couple seconds if this is incorrect.')
             return
