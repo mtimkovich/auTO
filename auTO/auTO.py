@@ -50,7 +50,7 @@ class TOCommands(commands.Cog):
     async def tourney_stop(self, guild):
         tourney = self.tournament_map.pop(guild, None)
         if tourney is not None:
-            await tourney.stop()
+            await tourney.delete_matches_category()
 
     @commands.group(case_insensitive=True)
     async def auTO(self, ctx):
@@ -232,7 +232,10 @@ class TOCommands(commands.Cog):
         start_msg = await ctx.send(
                 'Starting {}! Please stop your friendlies. {}'
                 .format(tourney.gar.get_name(), tourney.gar.get_url()))
-        await start_msg.pin()
+        try:
+            await start_msg.pin()
+        except discord.errors.HttpException as e:
+            logging.warning(e)
         await self.matches(ctx)
 
     @auTO.command()

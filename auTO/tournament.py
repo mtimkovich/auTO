@@ -4,6 +4,7 @@ from discord import ChannelType
 from typing import Optional
 
 from . import challonge
+from .match import manage_channels
 from . import utils
 
 
@@ -44,16 +45,18 @@ class Tournament(object):
         matches = await self.gar.get_matches()
         self.open_matches = [m for m in matches if m['state'] == 'open']
 
-        if not self.permissions().manage_channels or self.category is not None:
-            return
+        if self.permissions().manage_channels and self.category is None:
+            await self.delete_matches_category()
+            self.category = await self.guild.create_category('matches')
 
+    @manage_channels
+    async def delete_matches_category(self):
+        """Delete matches category and all its channels."""
         existing_categories = self.get_channels(
                 'matches', ChannelType.category)
         for c in existing_categories:
-            for chan in c.channels:
-                await chan.delete()
+            await asyncio.gather(*(chan.delete() for chan in c.channels))
             await c.delete()
-        self.category = await self.guild.create_category('matches')
 
     async def mark_match_underway(self, user1, user2):
         match_id = None
@@ -111,13 +114,6 @@ class Tournament(object):
         await utils.send_list(dms, message)
         return True
 
-    async def stop(self):
-        """Cleanup channels we've created."""
-        for match in self.called_matches.values():
-            await match.close()
-        if self.category:
-            await self.category.delete()
-
     def permissions(self) -> discord.Permissions:
         """Gets our permissions on the server."""
         return self.channel.permissions_for(self.guild.me)
@@ -152,8 +148,9 @@ class Tournament(object):
     def create_channel_name(self, player1: str, player2: str) -> str:
         return utils.channel_name('{} vs {}'.format(player1, player2))
 
+    @manage_channels
     async def clean_up_channels(self):
-        if not self.permissions().manage_channels or self.category is None:
+        if self.category is None:
             return
         channel_names = set()
 
@@ -162,6 +159,5 @@ class Tournament(object):
             player2 = m['player2']
             channel_names.add(self.create_channel_name(player1, player2))
             channel_names.add(self.create_channel_name(player2, player1))
-        for channel in self.category.channels:
-            if channel.name not in channel_names:
-                await channel.delete()
+        await asyncio.gather(*(c.delete for c in self.category.channels
+                             if c.name not in channel_names))

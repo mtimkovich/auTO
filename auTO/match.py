@@ -1,5 +1,7 @@
+import asyncio
 import discord
 from discord import ChannelType
+import functools
 import logging
 from random import random
 from typing import Optional
@@ -7,7 +9,43 @@ from typing import Optional
 from . import utils
 
 
+default = discord.PermissionOverwrite(
+    read_messages=False,
+    send_messages=False,
+    speak=False,
+    add_reactions=False,
+)
+
+player_perm = discord.PermissionOverwrite(
+    read_messages=True,
+    send_messages=True,
+    speak=True,
+    stream=True,
+    add_reactions=True,
+)
+
+voice_default = discord.PermissionOverwrite(
+    view_channel=True,
+    connect=True,
+)
+
+
+def manage_channels(func):
+    """Decorator that checks for the manage channels permission."""
+    @functools.wraps(func)
+    async def wrapper(self, *args, **kwargs):
+        if hasattr(self, 'tourney'):
+            tourney = self.tourney
+        else:
+            tourney = self
+        if not tourney.permissions().manage_channels:
+            return
+        return await func(self, *args, **kwargs)
+    return wrapper
+
+
 class Match(object):
+    """Handles private channel creation."""
     def __init__(self, tourney, player1_tag: str, player2_tag: str):
         if random() < .5:
             player1_tag, player2_tag = player2_tag, player1_tag
@@ -34,25 +72,10 @@ class Match(object):
         player2 = self.tag(self.player2, self.player2_tag, mention)
         return '{} vs {}'.format(player1, player2)
 
+    @manage_channels
     async def create_channels(self):
-        if not (self.tourney.permissions().manage_channels and
-                self.player1 and self.player2):
+        if not (self.player1 and self.player2):
             return
-
-        default = discord.PermissionOverwrite(
-            read_messages=False,
-            send_messages=False,
-            speak=False,
-            add_reactions=False,
-        )
-
-        player_perm = discord.PermissionOverwrite(
-            read_messages=True,
-            send_messages=True,
-            speak=True,
-            stream=True,
-            add_reactions=True,
-        )
 
         overwrites = {
             self.guild.default_role: default,
@@ -64,11 +87,6 @@ class Match(object):
         to_role = self.tourney.get_role('TO')
         if to_role is not None:
             overwrites[to_role] = player_perm
-
-        voice_default = discord.PermissionOverwrite(
-            view_channel=True,
-            connect=True,
-        )
 
         voice_overwrites = overwrites.copy()
         voice_overwrites[self.guild.default_role] = voice_default
@@ -82,7 +100,7 @@ class Match(object):
                     name, category=self.tourney.category,
                     overwrites=overwrites)
             self.channels.append(text)
-        
+
         voice = next(self.tourney.get_channels(name, ChannelType.voice), None)
         if voice is None:
             voice = await self.guild.create_voice_channel(
@@ -94,9 +112,9 @@ class Match(object):
                         "`!auTO report 0-2`. The reporter's score goes first."
                         .format(self.name(True)))
 
+    @manage_channels
     async def close(self):
-        for c in self.channels:
-            try:
-                await c.delete()
-            except discord.errors.NotFound as e:
-                logging.warning(e)
+        try:
+            await asyncio.gather(*(c.delete() for c in self.channels))
+        except discord.errors.NotFound as e:
+            logging.warning(e)
