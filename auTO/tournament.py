@@ -34,7 +34,7 @@ class Tournament(object):
         # The channel where matches are posted.
         self.channel = ctx.channel
         self.owner = ctx.author
-        self.previous_match_msgs = None
+        self.previous_match_msgs = []
         self.open_matches = []
         self.called_matches = {}
         self.recently_called = set()
@@ -83,9 +83,10 @@ class Tournament(object):
         return None
 
     async def report_match(self, match, winner_id, reporter, scores_csv):
-        await self.add_to_recently_called(match, reporter)
-        await self.gar.report_match(
-                match['id'], winner_id, scores_csv)
+        await asyncio.gather(
+            self.add_to_recently_called(match, reporter),
+            self.gar.report_match(match['id'], winner_id, scores_csv)
+        )
         match_obj = self.called_matches.get(match['id'])
         if match_obj:
             await match_obj.close()

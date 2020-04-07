@@ -3,6 +3,7 @@
 ### 1.5.0
 * Create private voice and text channels for each match if granted the "Manage Channels"
   permission.
+* Performance increases using `asyncio.gather()`.
 
 ### 1.4.8
 * Restore tournaments after auTO restart.

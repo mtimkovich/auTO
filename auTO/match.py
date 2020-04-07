@@ -92,21 +92,30 @@ class Match(object):
         voice_overwrites[self.guild.default_role] = voice_default
 
         name = utils.channel_name(self.name())
+        create_channels = []
+        new_text = False
 
         # Check if text or voice channels already exist.
         text = next(self.tourney.get_channels(name, ChannelType.text), None)
         if text is None:
-            text = await self.guild.create_text_channel(
+            text_aw = self.guild.create_text_channel(
                     name, category=self.tourney.category,
                     overwrites=overwrites)
-            self.channels.append(text)
+            new_text = True
+            create_channels.append(text_aw)
 
         voice = next(self.tourney.get_channels(name, ChannelType.voice), None)
         if voice is None:
-            voice = await self.guild.create_voice_channel(
+            voice_aw = self.guild.create_voice_channel(
                     name, category=self.tourney.category,
                     overwrites=voice_overwrites)
-            self.channels.append(voice)
+            create_channels.append(voice_aw)
+
+        channels = await asyncio.gather(*create_channels)
+        self.channels += channels
+
+        if new_text:
+            text = channels[0]
 
         await text.send("Private channel for {}. Report results with "
                         "`!auTO report 0-2`. The reporter's score goes first."

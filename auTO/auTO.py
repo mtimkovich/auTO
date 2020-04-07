@@ -303,6 +303,7 @@ class TOCommands(commands.Cog):
         await tourney.clean_up_channels()
 
         announcement = []
+        create_channels = []
         for m in sorted(tourney.open_matches,
                         key=lambda m: m['suggested_play_order']):
             player1 = m['player1']
@@ -313,7 +314,7 @@ class TOCommands(commands.Cog):
             if m['id'] not in tourney.called_matches:
                 match = Match(tourney, player1, player2)
                 tourney.called_matches[m['id']] = match
-                await match.create_channels()
+                create_channels.append(match.create_channels())
 
             match = tourney.called_matches[m['id']]
             round = '**{}**: '.format(m['round'])
@@ -327,11 +328,14 @@ class TOCommands(commands.Cog):
                 players = '*{}*'.format(players)
             announcement.append(round + players)
 
-        msgs = await utils.send_list(tourney.channel, announcement)
-        if tourney.previous_match_msgs is not None:
-            for msg in tourney.previous_match_msgs:
-                await msg.delete()
-        tourney.previous_match_msgs = msgs
+        aws = await asyncio.gather(
+            utils.send_list(tourney.channel, announcement),
+            *create_channels
+        )
+
+        await asyncio.gather(
+                *(msg.delete() for msg in tourney.previous_match_msgs))
+        tourney.previous_match_msgs = aws[0]
 
     @auTO.command(brief='Report match results')
     @has_tourney
