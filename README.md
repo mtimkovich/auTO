@@ -9,9 +9,10 @@ auTO can only manage tournaments ran through [Challonge](https://challonge.com).
 ## Features
 * List active matches.
 * Ping players when it's time for them to play.
-* *Melee:* Mark matches as in progress when players post netplay codes in the chat.
+* Create private channels for each match.
 * Players can report their own matches without going through the TO.
 * TOs can start auto DQ timer for missing players (`noshow`).
+* Mark matches as in progress when players post netplay codes in the chat.
 * Automatic RPS: Player order is randomized, so first player listed stage strikes first.
 
 ## Setup

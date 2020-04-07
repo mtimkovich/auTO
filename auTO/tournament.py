@@ -1,17 +1,10 @@
 import asyncio
 import discord
-from enum import Enum, auto
-from random import random
+from discord import ChannelType
 from typing import Optional
 
 from . import challonge
 from . import utils
-
-
-class ChannelType(Enum):
-    ALL = auto()
-    TEXT = auto()
-    VOICE = auto()
 
 
 class FakeContext(object):
@@ -33,102 +26,6 @@ class TournamentPickle(object):
         self.api_key = tourney.gar.api_key
 
 
-class Match(object):
-    def __init__(self, tourney, player1_tag: str, player2_tag: str):
-        if random() < .5:
-            player1_tag, player2_tag = player2_tag, player1_tag
-        self.tourney = tourney
-        self.guild = tourney.guild
-        self.player1_tag = player1_tag
-        self.player2_tag = player2_tag
-        self.player1 = tourney.get_user(player1_tag)
-        self.player2 = tourney.get_user(player2_tag)
-        self.first = True
-        self.channels = []
-
-    def tag(self, player: Optional[discord.Member], tag: str,
-            mention: bool) -> str:
-        if player is None:
-            return tag
-        elif mention:
-            return player.mention
-        else:
-            return player.display_name
-
-    def name(self, mention: bool = False) -> str:
-        player1 = self.tag(self.player1, self.player1_tag, mention)
-        player2 = self.tag(self.player2, self.player2_tag, mention)
-        return '{} vs {}'.format(player1, player2)
-
-    def channel_name(self) -> str:
-        """Match the style of the text channel."""
-        return self.name().lower().replace(' ', '-')
-
-    async def create_channels(self):
-        if not (self.tourney.permissions().manage_channels and
-                self.player1 and self.player2):
-            return
-
-        default = discord.PermissionOverwrite(
-            read_messages=False,
-            send_messages=False,
-            speak=False,
-            add_reactions=False,
-        )
-
-        player_perm = discord.PermissionOverwrite(
-            read_messages=True,
-            send_messages=True,
-            speak=True,
-            stream=True,
-            add_reactions=True,
-        )
-
-        overwrites = {
-            self.guild.default_role: default,
-            self.guild.me: player_perm,
-            self.player1: player_perm,
-            self.player2: player_perm,
-        }
-
-        to_role = self.tourney.get_role('TO')
-        if to_role is not None:
-            overwrites[to_role] = player_perm
-
-        voice_default = discord.PermissionOverwrite(
-            view_channel=True,
-            connect=True,
-        )
-
-        voice_overwrites = overwrites.copy()
-        voice_overwrites[self.guild.default_role] = voice_default
-
-        # Check if text or voice channels already exist.
-        text = self.tourney.get_channel(self.channel_name(), ChannelType.TEXT)
-        if text is None:
-            text = await self.guild.create_text_channel(
-                self.channel_name(),
-                category=self.tourney.category,
-                overwrites=overwrites)
-            self.channels.append(text)
-
-        if not self.tourney.get_channel(
-                self.channel_name(), ChannelType.VOICE):
-            voice = await self.guild.create_voice_channel(
-                self.channel_name(),
-                category=self.tourney.category,
-                overwrites=voice_overwrites)
-            self.channels.append(voice)
-
-        await text.send("Private channel for {}. Report results with "
-                        "`!auTO report 0-2`. (The reporter's score goes "
-                        "first.)".format(self.name(True)))
-
-    async def close(self):
-        for c in self.channels:
-            await c.delete()
-
-
 class Tournament(object):
     """Tournaments are unique to a guild."""
     def __init__(self, ctx, tournament_id, api_key, session):
@@ -146,8 +43,17 @@ class Tournament(object):
     async def get_open_matches(self):
         matches = await self.gar.get_matches()
         self.open_matches = [m for m in matches if m['state'] == 'open']
-        if self.permissions().manage_channels and self.category is None:
-            self.category = await self.guild.create_category('matches')
+
+        if not self.permissions().manage_channels or self.category is not None:
+            return
+
+        existing_categories = self.get_channels(
+                'matches', ChannelType.category)
+        for c in existing_categories:
+            for chan in c.channels:
+                await chan.delete()
+            await c.delete()
+        self.category = await self.guild.create_category('matches')
 
     async def mark_match_underway(self, user1, user2):
         match_id = None
@@ -232,12 +138,30 @@ class Tournament(object):
     def get_role(self, role_name: str) -> Optional[discord.Role]:
         return next((r for r in self.guild.roles if r.name == role_name), None)
 
-    def get_channel(self, channel_name: str,
-                    type: ChannelType = ChannelType.ALL) -> Optional:
-        if type == ChannelType.TEXT:
+    def get_channels(self, channel_name: str, type: ChannelType = None):
+        if type == ChannelType.text:
             lst = self.guild.text_channels
-        elif type == ChannelType.VOICE:
+        elif type == ChannelType.voice:
             lst = self.guild.voice_channels
+        elif type == ChannelType.category:
+            lst = self.guild.categories
         else:
             lst = self.guild.channels
-        return next((r for r in lst if r.name == channel_name), None)
+        return (r for r in lst if r.name == channel_name)
+
+    def create_channel_name(self, player1: str, player2: str) -> str:
+        return utils.channel_name('{} vs {}'.format(player1, player2))
+
+    async def clean_up_channels(self):
+        if not self.permissions().manage_channels or self.category is None:
+            return
+        channel_names = set()
+
+        for m in self.open_matches:
+            player1 = m['player1']
+            player2 = m['player2']
+            channel_names.add(self.create_channel_name(player1, player2))
+            channel_names.add(self.create_channel_name(player2, player1))
+        for channel in self.category.channels:
+            if channel.name not in channel_names:
+                await channel.delete()

@@ -12,8 +12,9 @@ from typing import Optional
 
 from . import challonge
 from .config import config
+from .match import Match
+from .tournament import Tournament, TournamentPickle, FakeContext
 from . import utils
-from .tournament import Tournament, TournamentPickle, FakeContext, Match
 
 logging.basicConfig(level=logging.INFO)
 
@@ -291,9 +292,12 @@ class TOCommands(commands.Cog):
         await tourney.get_open_matches()
 
         if not tourney.open_matches:
+            await tourney.clean_up_channels()
             await tourney.channel.send('Tournament has finished!')
             await self.end_tournament(ctx, tourney)
             return
+
+        await tourney.clean_up_channels()
 
         announcement = []
         for m in sorted(tourney.open_matches,

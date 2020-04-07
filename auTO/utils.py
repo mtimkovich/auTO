@@ -28,3 +28,8 @@ async def send_list(ctx: discord.abc.Messageable, the_list: List[str]) -> List:
 
 async def get_dms(owner: discord.Member):
     return owner.dm_channel if owner.dm_channel else await owner.create_dm()
+
+
+def channel_name(name) -> str:
+    """Match the style of the text channel."""
+    return name.lower().replace(' ', '-')
