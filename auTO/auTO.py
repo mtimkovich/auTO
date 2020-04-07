@@ -205,9 +205,9 @@ class TOCommands(commands.Cog):
                 if e.code == 422:
                     await ctx.send('Tournament needs at least 2 players.')
                 else:
-                    raise e
-                await self.tourney_stop(ctx.guild)
-                return
+                    await self.tourney_stop(ctx.guild)
+                    logging.warning(e)
+                    return
         elif tourney.gar.get_state() == 'ended':
             await ctx.send("Tournament has already finished.")
             await self.tourney_stop(ctx.guild)
