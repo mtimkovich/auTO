@@ -105,7 +105,7 @@ class Tournament(object):
 
     def is_duplicate_report(self, reporter: str) -> bool:
         reporter = reporter.lower()
-        last_report_time = tourney.recently_called.get(reporter)
+        last_report_time = self.recently_called.get(reporter)
         if last_report_time is not None:
             if time() - last_report_time < 10:
                 return True
