@@ -88,10 +88,8 @@ class Tournament(object):
     async def report_match(self, match, winner_id, reporter, scores_csv):
         self.add_to_recently_called(match, reporter),
         await self.gar.report_match(match.raw['id'], winner_id, scores_csv)
-        match_obj = self.called_matches.get(match.raw['id'])
-        if match_obj:
-            await match_obj.close()
-            self.called_matches.pop(match.raw['id'])
+        await match.close()
+        self.called_matches.pop(match.raw['id'])
 
     def add_to_recently_called(self, match, reporter):
         """Prevent both players from reporting at the same time."""
