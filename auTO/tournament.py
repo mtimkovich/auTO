@@ -5,7 +5,7 @@ from time import time
 from typing import Optional
 
 from . import challonge
-from .match import manage_channels
+from .match import manage_channels, Match
 from . import utils
 
 
@@ -36,7 +36,6 @@ class Tournament(object):
         self.channel = ctx.channel
         self.owner = ctx.author
         self.previous_match_msgs = []
-        self.open_matches = []
         self.called_matches = {}
         self.recently_called = {}
         self.category = None
@@ -44,11 +43,14 @@ class Tournament(object):
 
     async def get_open_matches(self):
         matches = await self.gar.get_matches()
-        self.open_matches = [m for m in matches if m['state'] == 'open']
+        return [m for m in matches if m['state'] == 'open']
 
-        if self.permissions().manage_channels and self.category is None:
-            await self.delete_matches_category()
-            self.category = await self.guild.create_category('matches')
+    @manage_channels
+    async def create_matches_category(self):
+        if self.category is not None:
+            return
+        await self.delete_matches_category()
+        self.category = await self.guild.create_category('matches')
 
     @manage_channels
     async def delete_matches_category(self):
@@ -71,36 +73,32 @@ class Tournament(object):
             if match is None:
                 return
             elif match_id is None:
-                match_id = match['id']
-            elif match_id != match['id']:
+                match_id = match.raw['id']
+            elif match_id != match.raw['id']:
                 return
 
         await self.gar.mark_underway(match_id)
 
-    def user_in_match(self, username, match) -> bool:
-        return username.lower() in map(lambda s: s.lower(), [match['player1'],
-                                       match['player2']])
-
-    def find_match(self, username) -> Optional:
-        for match in self.open_matches:
-            if self.user_in_match(username, match):
+    def find_match(self, username: str) -> Match:
+        for _, match in self.called_matches.items():
+            if match.has_player(username):
                 return match
         return None
 
     async def report_match(self, match, winner_id, reporter, scores_csv):
         self.add_to_recently_called(match, reporter),
-        await self.gar.report_match(match['id'], winner_id, scores_csv)
-        match_obj = self.called_matches.get(match['id'])
+        await self.gar.report_match(match.raw['id'], winner_id, scores_csv)
+        match_obj = self.called_matches.get(match.raw['id'])
         if match_obj:
             await match_obj.close()
-            self.called_matches.pop(match['id'])
+            self.called_matches.pop(match.raw['id'])
 
     def add_to_recently_called(self, match, reporter):
         """Prevent both players from reporting at the same time."""
-        if utils.istrcmp(match['player1'], reporter):
-            other = match['player2']
+        if utils.istrcmp(match.player1_tag, reporter):
+            other = match.player2_tag
         else:
-            other = match['player1']
+            other = match.player1_tag
         self.recently_called[other] = time()
 
     def is_duplicate_report(self, reporter: str) -> bool:
@@ -161,12 +159,12 @@ class Tournament(object):
         return utils.channel_name('{} vs {}'.format(player1, player2))
 
     @manage_channels
-    async def clean_up_channels(self):
+    async def clean_up_channels(self, open_matches):
         if self.category is None:
             return
         channel_names = set()
 
-        for m in self.open_matches:
+        for m in open_matches:
             player1 = m['player1']
             player2 = m['player2']
             channel_names.add(self.create_channel_name(player1, player2))

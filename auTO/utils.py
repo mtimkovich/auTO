@@ -31,7 +31,7 @@ async def get_dms(owner: discord.Member):
     return owner.dm_channel if owner.dm_channel else await owner.create_dm()
 
 
-def channel_name(name) -> str:
+def channel_name(name: str) -> str:
     """Match the style of the text channel."""
     name = name.lower().replace(' ', '-')
     punctuation = re.escape(r'!"#$%&\'()*+,./:;<=>?@[\]^`{|}~')

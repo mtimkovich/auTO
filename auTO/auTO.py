@@ -117,15 +117,18 @@ class TOCommands(commands.Cog):
         except ValueError as e:
             await ctx.send(e)
             return
-        await ctx.send('Renamed {} to {}'.format(
-                       challonge_tag, member.display_name))
+
+        match = tourney.find_match(challonge_tag)
+        match.update_player(challonge_tag, member)
+
+        await ctx.send(f'Renamed {challonge_tag} to {member.display_name}.')
 
     @auTO.command()
     @has_tourney
     async def status(self, ctx, *, tourney=None):
         await ctx.trigger_typing()
-        await ctx.send('Tournament is {}% completed.'
-                       .format(await tourney.gar.progress_meter()))
+        status = await tourney.gar.progress_meter()
+        await ctx.send(f'Tournament is {status}% completed.')
 
     def is_dm_response(self, owner):
         return lambda m: m.channel == owner.dm_channel and m.author == owner
@@ -291,19 +294,20 @@ class TOCommands(commands.Cog):
     async def matches(self, ctx, *, tourney=None):
         """Checks for match updates and prints matches to the channel."""
         await tourney.channel.trigger_typing()
-        await tourney.get_open_matches()
+        open_matches = await tourney.get_open_matches()
 
-        if not tourney.open_matches:
-            await tourney.clean_up_channels()
+        if not open_matches:
+            await tourney.clean_up_channels(open_matches)
             await tourney.channel.send('Tournament has finished!')
             await self.end_tournament(ctx, tourney)
             return
 
-        await tourney.clean_up_channels()
+        await tourney.create_matches_category()
+        await tourney.clean_up_channels(open_matches)
 
         announcement = []
         create_channels = []
-        for m in sorted(tourney.open_matches,
+        for m in sorted(open_matches,
                         key=lambda m: m['suggested_play_order']):
             player1 = m['player1']
             player2 = m['player2']
@@ -311,7 +315,7 @@ class TOCommands(commands.Cog):
             # We want to only ping players the first time their match is
             # called.
             if m['id'] not in tourney.called_matches:
-                match = Match(tourney, player1, player2)
+                match = Match(tourney, m)
                 tourney.called_matches[m['id']] = match
                 create_channels.append(match.create_channels())
 
@@ -369,19 +373,19 @@ class TOCommands(commands.Cog):
 
         match = tourney.find_match(username)
         if match is None:
-            await ctx.send('{} not found in current matches'.format(username))
+            await ctx.send(f'{username} not found in current matches.')
             return
 
-        match_id = match['id']
-        if utils.istrcmp(username, match['player2']):
+        match_id = match.raw['id']
+        if utils.istrcmp(username, match.player2_tag):
             # Scores are reported with player1's score first.
             scores_csv = '{1}-{0}'.format(*scores)
             player1_win = not player1_win
 
         if player1_win:
-            winner_id = match['player1_id']
+            winner_id = match.raw['player1_id']
         else:
-            winner_id = match['player2_id']
+            winner_id = match.raw['player2_id']
 
         await tourney.report_match(match, winner_id, username, scores_csv)
         await self.matches(ctx)

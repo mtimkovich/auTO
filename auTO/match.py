@@ -26,7 +26,6 @@ player_perm = discord.PermissionOverwrite(
 voice_default = discord.PermissionOverwrite(
     view_channel=True,
     connect=True,
-    speak=False,
     stream=False,
 )
 
@@ -47,15 +46,16 @@ def manage_channels(func):
 
 class Match(object):
     """Handles private channel creation."""
-    def __init__(self, tourney, player1_tag: str, player2_tag: str):
+    def __init__(self, tourney, raw):
+        self.player1_tag = raw['player1']
+        self.player2_tag = raw['player2']
         if random() < .5:
-            player1_tag, player2_tag = player2_tag, player1_tag
+            self.player1_tag, self.player2_tag = self.player2_tag, self.player1_tag
         self.tourney = tourney
+        self.raw = raw
         self.guild = tourney.guild
-        self.player1_tag = player1_tag
-        self.player2_tag = player2_tag
-        self.player1 = tourney.get_user(player1_tag)
-        self.player2 = tourney.get_user(player2_tag)
+        self.player1 = tourney.get_user(self.player1_tag)
+        self.player2 = tourney.get_user(self.player2_tag)
         self.first = True
         self.channels = []
 
@@ -72,6 +72,18 @@ class Match(object):
         player1 = self.tag(self.player1, self.player1_tag, mention)
         player2 = self.tag(self.player2, self.player2_tag, mention)
         return '{} vs {}'.format(player1, player2)
+
+    def has_player(self, tag: str) -> bool:
+        return tag.lower() in list(
+                map(lambda s: s.lower(), [self.player1_tag, self.player2_tag]))
+
+    def update_player(self, old_tag: str, member: discord.Member):
+        if utils.istrcmp(self.player1_tag, old_tag):
+            self.player1_tag = member.display_name
+            self.player1 = member
+        elif utils.istrcmp(self.player2_tag, old_tag):
+            self.player2_tag = member.display_name
+            self.player2 = member
 
     @manage_channels
     async def create_channels(self):
@@ -93,34 +105,19 @@ class Match(object):
         voice_overwrites[self.guild.default_role] = voice_default
 
         name = utils.channel_name(self.name())
-        create_channels = []
-        new_text = False
 
-        # Check if text or voice channels already exist.
-        text = next(self.tourney.get_channels(name, ChannelType.text), None)
-        if text is None:
-            text_aw = self.guild.create_text_channel(
-                    name, category=self.tourney.category,
-                    overwrites=overwrites)
-            new_text = True
-            create_channels.append(text_aw)
+        self.channels = await asyncio.gather(
+            self.tourney.category.create_text_channel(
+                name, overwrites=overwrites),
+            self.tourney.category.create_voice_channel(
+                name, overwrites=voice_overwrites)
+        )
 
-        voice = next(self.tourney.get_channels(name, ChannelType.voice), None)
-        if voice is None:
-            voice_aw = self.guild.create_voice_channel(
-                    name, category=self.tourney.category,
-                    overwrites=voice_overwrites)
-            create_channels.append(voice_aw)
+        text = self.channels[0]
 
-        channels = await asyncio.gather(*create_channels)
-        self.channels += channels
-
-        if new_text:
-            text = channels[0]
-
-        await text.send("Private channel for {}. Report results with "
-                        "`!auTO report 0-2`. The reporter's score goes first."
-                        .format(self.name(True)))
+        await text.send(f"Private channel for {self.name(True)}. Report "
+                        "results with `!auTO report 0-2`. The reporter's "
+                        "score goes first.")
 
     @manage_channels
     async def close(self):
