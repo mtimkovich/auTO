@@ -1,4 +1,5 @@
 import discord
+import re
 from typing import List
 
 
@@ -32,4 +33,6 @@ async def get_dms(owner: discord.Member):
 
 def channel_name(name) -> str:
     """Match the style of the text channel."""
-    return name.lower().replace(' ', '-')
+    name = name.lower().replace(' ', '-')
+    punctuation = re.escape(r'!"#$%&\'()*+,./:;<=>?@[\]^`{|}~')
+    return re.sub(rf'[{punctuation}]+', '', name)

@@ -127,4 +127,4 @@ class Match(object):
         try:
             await asyncio.gather(*(c.delete() for c in self.channels))
         except discord.errors.NotFound as e:
-            logging.warning(e)
+            logging.warning(f'{e}: {self.channels}')
