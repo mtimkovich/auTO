@@ -9,9 +9,9 @@ auTO can only manage tournaments ran through [Challonge](https://challonge.com).
 ## Features
 * List active matches.
 * Ping players when it's time for them to play.
-* Create private channels for each match.
+* Create private voice and text channels for each match.
 * Players can report their own matches without going through the TO.
-* TOs can start auto DQ timer for missing players (`noshow`).
+* TOs can start an auto DQ timer for missing players (`noshow`).
 * Mark matches as in progress when players post netplay codes in the chat.
 * Automatic RPS: Player order is randomized, so first player listed stage strikes first.
 
@@ -22,20 +22,20 @@ permission.
 
 I also recommend creating a role called "TO" on your server. Everyone with this role will
 be able to run commands requiring the TO permission. By default, only the creator and admins
-will be able to run TO commands.
+are able to run TO commands.
 
 ## Running a Tournament
 
 1. [Invite auTO to your server.][setup]
 2. Create your Challonge bracket and add players.
     1. Note: The player's tag in the Challonge bracket **must be** their Discord username. This is
-    the username as it appears on the server you're on, and not including the "#1234" discriminator
+    their name as it appears on the tournament server and doesn't include the "#12345" identifier
     at the end.
 3. Run `!auTO start [CHALLONGE_URL]` in the channel you want the tournament to run.
     1. auTO will dm you to ask for your Challonge API key. (This is deleted as soon as the
        tournament finishes.)
 4. auTO will start calling matches!
-5. Players can report their matches using the `!auTO report` command.
+5. Players report their matches using the `!auTO report` command.
 
 ## Discord Commands
 
