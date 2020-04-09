@@ -44,6 +44,13 @@ def manage_channels(func):
     return wrapper
 
 
+class MatchPickle(object):
+    def __init__(self, match):
+        self.player1_id = match.player1.id
+        self.player2_id = match.player2.id
+        self.channels = map(lambda c: c.id, match.channels)
+
+
 class Match(object):
     """Handles private channel creation."""
     def __init__(self, tourney, raw):
