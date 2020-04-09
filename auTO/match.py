@@ -47,16 +47,38 @@ def manage_channels(func):
 class MatchPickle(object):
     """Pickleable version of Match."""
     def __init__(self, match):
-        self.raw = match.raw
-        self.player1_id = match.player1.id
-        self.player2_id = match.player2.id
-        self.channels = list(map(lambda c: c.id, match.channels))
+        self.id = match.id
+        self.player1_id = match.player1_id
+        self.player2_id = match.player2_id
+        self.player1_tag = match.player1_tag
+        self.player2_tag = match.player2_tag
+        self.rps = match.rps
+        self.channel_ids = [c.id for c in match.channels]
+
+    def unpickle(self, tourney):
+        fake_raw = {
+            'id': self.id,
+            'player1': self.player1_tag,
+            'player2': self.player2_tag,
+            'player1_id': self.player1_id,
+            'player2_id': self.player2_id,
+        }
+
+        match = Match(tourney, fake_raw, self.rps)
+        for c in self.channel_ids:
+            channel = tourney.guild.get_channel(c)
+            if channel is not None:
+                match.channels.append(channel)
+        return match
 
 
 class Match(object):
     """Handles private channel creation."""
-    def __init__(self, tourney, raw):
-        self.rps = random() < .5
+    def __init__(self, tourney, raw, rps=None):
+        if rps is None:
+            self.rps = random() < .5
+        else:
+            self.rps = rps
         self.id = raw['id']
         self.player1_tag = raw['player1']
         self.player2_tag = raw['player2']
@@ -66,7 +88,7 @@ class Match(object):
         self.guild = tourney.guild
         self.player1 = tourney.get_user(self.player1_tag)
         self.player2 = tourney.get_user(self.player2_tag)
-        self.first = True
+        self.first = rps is None
         self.channels = []
 
     def pickle(self):

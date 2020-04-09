@@ -319,6 +319,7 @@ class TOCommands(commands.Cog):
     async def matches(self, ctx, *, tourney=None):
         """Checks for match updates and prints matches to the channel."""
         await tourney.channel.trigger_typing()
+        await asyncio.wait_for(self.load(), 2)
         open_matches = await tourney.get_open_matches()
 
         if not open_matches:
@@ -471,7 +472,7 @@ class TOCommands(commands.Cog):
         else:
             await ctx.send(err)
 
-    def load(self):
+    async def load(self):
         if not self.saved:
             return
         for guild in self.bot.guilds:
@@ -485,14 +486,19 @@ class TOCommands(commands.Cog):
                 continue
             tourney = self.tourney_start(
                     ctx, saved.tournament_id, saved.api_key)
-            tourney.category = saved.category
+            if saved.category_id:
+                tourney.category = ctx.guild.get_channel(saved.category_id)
+            for id, mp in saved.matches.items():
+                match = mp.unpickle(tourney)
+                if match.channels:
+                    tourney.called_matches[id] = match
         logging.info('Loaded saved tournaments.')
         self.saved = {}
 
     @commands.Cog.listener()
     async def on_ready(self):
         logging.info('auTO has connected to Discord.')
-        self.load()
+        await self.load()
 
     @commands.Cog.listener()
     async def on_message(self, message):

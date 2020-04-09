@@ -25,7 +25,9 @@ class TournamentPickle(object):
         self.channel_id = tourney.channel.id
         self.owner_id = tourney.owner.id
         self.tournament_id = tourney.gar.tournament_id
-        self.category = tourney.category
+        self.category_id = None
+        if tourney.category is not None:
+            self.category_id = tourney.category.id
         self.api_key = tourney.gar.api_key
         self.matches = {}
 
