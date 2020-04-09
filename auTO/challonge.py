@@ -26,14 +26,14 @@ def extract_id(url):
     match = re.search(r'(\w+)?\.?challonge.com/([^/]+)', url)
 
     if match is None or match.group(2) is None:
-        raise ValueError('Invalid Challonge URL: {}'.format(url))
+        raise ValueError(f'Invalid Challonge URL: {url}')
 
     subdomain, tourney = match.groups()
 
     if subdomain is None:
         return tourney
     else:
-        return '{}-{}'.format(subdomain, tourney)
+        return f'{subdomain}-{tourney}'
 
 
 class Challonge(object):
@@ -93,10 +93,10 @@ class Challonge(object):
     def round_name(self, round_num: int) -> str:
         """Creates the shortened, human-readable version of round names."""
         prefix = 'W' if round_num > 0 else 'L'
-        suffix = 'R{}'.format(abs(round_num))
+        suffix = f'R{abs(round)}'
 
         if self.winners_rounds is None or self.losers_rounds is None:
-            return '{}{}'.format(prefix, suffix)
+            return f'{prefix}{suffix}'
 
         if round_num == self.winners_rounds:
             return 'GF'
@@ -110,7 +110,7 @@ class Challonge(object):
                 round_num == self.losers_rounds + 2):
             suffix = 'QF'
 
-        return '{}{}'.format(prefix, suffix)
+        return f'{prefix}{suffix}'
 
     def set_player_map(self):
         self.player_map = {}
@@ -183,7 +183,7 @@ class Challonge(object):
             if self.is_elimination():
                 round_name = self.round_name(round_num)
             else:
-                round_name = 'R{}'.format(round_num)
+                round_name = f'R{round_num}'
 
             if player1_id is None or player2_id is None:
                 continue
@@ -244,7 +244,7 @@ class Challonge(object):
     def player_url(self, tag: str) -> str:
         p = self.get_player(tag)
         if p is None:
-            raise ValueError("Can't find player with tag: '{}'".format(tag))
+            raise ValueError(f"Can't find player with tag: '{tag}'")
         player = p['participant']
         return PARTICIPANT_URL.format(self.tournament_id, player['id'])
 
@@ -259,8 +259,8 @@ class Challonge(object):
         except ClientResponseError as e:
             if e.code == 422:
                 raise ValueError(
-                        "Can't rename '{}' to '{}'. Possible duplicate?"
-                        .format(tag, discord_name))
+                        f"Can't rename '{tag}' to '{discord_name}'. "
+                        "Possible duplicate?")
             raise e
 
         await self.get_raw()

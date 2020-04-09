@@ -71,7 +71,7 @@ class Match(object):
     def name(self, mention: bool = False) -> str:
         player1 = self.tag(self.player1, self.player1_tag, mention)
         player2 = self.tag(self.player2, self.player2_tag, mention)
-        return '{} vs {}'.format(player1, player2)
+        return f'{player1} vs {player2}'
 
     def has_player(self, tag: str) -> bool:
         return tag.lower() in list(

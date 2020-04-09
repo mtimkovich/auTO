@@ -159,47 +159,13 @@ class TOCommands(commands.Cog):
 
     async def confirm(self, user, question) -> bool:
         """DM the user a yes/no question."""
-        await user.send('{} [Y/n]'.format(question))
+        await user.send(f'{question} [Y/n]')
         msg = await self.bot.wait_for(
                 'message', check=self.is_dm_response(user))
 
         return msg.content.strip().lower() in ['y', 'yes']
 
-    @auTO.command(brief='Challonge URL of tournament')
-    async def start(self, ctx, url: str):
-        """Sets tournament URL and start calling matches."""
-        if self.tournament_map.get(ctx.guild) is not None:
-            await ctx.send('A tournament is already in progress')
-            return
-
-        try:
-            tournament_id = challonge.extract_id(url)
-        except ValueError as e:
-            await ctx.send(e)
-            return
-
-        # Useful for debugging.
-        api_key = config.get('CHALLONGE_KEY')
-        if api_key is None:
-            api_key = await self.ask_for_challonge_key(ctx.author)
-            if api_key is None:
-                return
-
-        tourney = self.tourney_start(ctx, tournament_id, api_key)
-        try:
-            await tourney.gar.get_raw()
-        except ClientResponseError as e:
-            if e.code == 401:
-                await ctx.author.dm_channel.send('Invalid API Key')
-                await self.tourney_stop(ctx.guild)
-                return
-            elif e.code == 404:
-                await ctx.send('Invalid tournament URL.')
-                await self.tourney_stop(ctx.guild)
-                return
-            else:
-                raise e
-
+    async def invalid_state(self, ctx, tourney) -> bool:
         if tourney.gar.get_state() == 'pending':
             try:
                 await tourney.gar.start()
@@ -208,12 +174,42 @@ class TOCommands(commands.Cog):
                     await ctx.send('Tournament needs at least 2 players.')
                 else:
                     logging.warning(e)
-                await self.tourney_stop(ctx.guild)
-                return
+                return True
         elif tourney.gar.get_state() == 'ended':
             await ctx.send("Tournament has already finished.")
-            await self.tourney_stop(ctx.guild)
-            return
+            return True
+        return False
+
+    async def create_tournament(self, ctx, url: str):
+        try:
+            tournament_id = challonge.extract_id(url)
+        except ValueError as e:
+            await ctx.send(e)
+            return None
+
+        # Useful for debugging.
+        api_key = config.get('CHALLONGE_KEY')
+        if api_key is None:
+            api_key = await self.ask_for_challonge_key(ctx.author)
+            if api_key is None:
+                return None
+
+        tourney = self.tourney_start(ctx, tournament_id, api_key)
+
+        try:
+            await tourney.gar.get_raw()
+        except ClientResponseError as e:
+            if e.code == 401:
+                await ctx.author.dm_channel.send('Invalid API Key')
+                return None
+            elif e.code == 404:
+                await ctx.send('Invalid tournament URL.')
+                return None
+            else:
+                raise e
+
+        if await self.invalid_state(ctx, tourney):
+            return None
 
         has_missing = await tourney.missing_tags(ctx.author)
         if has_missing:
@@ -221,14 +217,28 @@ class TOCommands(commands.Cog):
             if confirm:
                 await self.update_tags(ctx)
             else:
-                await self.tourney_stop(ctx.guild)
-                return
+                return None
+        return tourney
+
+    @auTO.command(brief='Challonge URL of tournament')
+    async def start(self, ctx, url: str):
+        """Sets tournament URL and start calling matches."""
+        if self.tournament_map.get(ctx.guild) is not None:
+            await ctx.send('A tournament is already in progress')
+            return
+
+        tourney = await self.create_tournament(ctx, url)
+        if tourney is None:
+            await self.tourney_stop(ctx.guild)
+            return
 
         activity = discord.Activity(name='Dolphin',
                                     type=discord.ActivityType.watching)
-        await self.bot.change_presence(activity=activity)
+        await asyncio.gather(
+            self.bot.change_presence(activity=activity),
+            tourney.channel.trigger_typing()
+        )
 
-        await tourney.channel.trigger_typing()
         logging.info('Starting tournament {} on {}'.format(
             tourney.gar.get_name(), tourney.guild.name))
         start_msg = await ctx.send(
@@ -244,9 +254,11 @@ class TOCommands(commands.Cog):
     @has_tourney
     @is_to
     async def stop(self, ctx, *, tourney=None):
-        await self.tourney_stop(ctx.guild)
-        await self.bot.change_presence()
-        await ctx.send('Goodbye 😞')
+        await asyncio.gather(
+            self.tourney_stop(ctx.guild),
+            self.bot.change_presence(),
+            ctx.send('Goodbye 😞')
+        )
 
     async def end_tournament(self, ctx, tourney):
         confirm = await self.confirm(
@@ -283,11 +295,13 @@ class TOCommands(commands.Cog):
 
         for i, players in top8:
             players = ' / '.join(map(tourney.mention_user, players))
-            message.append('{}. {}'.format(i, players))
+            message.append(f'{i}. {players}')
 
-        await utils.send_list(tourney.channel, message)
-        await self.tourney_stop(tourney.guild)
-        await self.bot.change_presence()
+        await asyncio.gather(
+            utils.send_list(tourney.channel, message),
+            self.tourney_stop(tourney.guild),
+            self.bot.change_presence(),
+        )
 
     @auTO.command()
     @has_tourney
@@ -320,7 +334,7 @@ class TOCommands(commands.Cog):
                 create_channels.append(match.create_channels())
 
             match = tourney.called_matches[m['id']]
-            round = '**{}**: '.format(m['round'])
+            round = f"**{m['round']}**: "
             if match.first:
                 players = match.name(True)
                 match.first = False
@@ -328,7 +342,7 @@ class TOCommands(commands.Cog):
                 players = match.name()
 
             if m['underway']:
-                players = '*{}*'.format(players)
+                players = f'*{players}*'
             announcement.append(round + players)
 
         aws = await asyncio.gather(
@@ -403,24 +417,24 @@ class TOCommands(commands.Cog):
         await tourney.channel.trigger_typing()
         match = tourney.find_match(user.display_name)
         if match is None:
-            await tourney.channel.send(
-                    '{} does not have a match to be DQed from.'
-                    .format(user.display_name))
+            await tourney.channel.send(f'{user.display_name} does not have a '
+                                       'match to be DQed from.')
             return
 
         await tourney.channel.send(
-                '{}: message in the chat and start playing your match within '
-                '5 minutes or you will be DQed.'.format(user.mention))
+                f'{user.mention}: message in the chat and start playing your '
+                'match within 5 minutes or you will be DQed.')
         try:
             FIVE_MINUTES = 5 * 60
             await self.bot.wait_for(
                     'message', check=lambda m: m.author == user,
                     timeout=FIVE_MINUTES)
         except asyncio.TimeoutError:
-            msg = await tourney.channel.send(
-                    '{} has been DQed'.format(user.mention))
-            if tourney.permissions().add_reactions:
+            msg = await tourney.channel.send(f'{user.mention} has been DQed')
+            try:
                 await msg.add_reaction('🇫')
+            except discord.DiscordException as e:
+                logging.warning(e)
             await tourney.gar.dq(user.display_name)
             await self.matches(ctx)
 
@@ -498,7 +512,7 @@ def load_tournaments():
     except OSError:
         pass
     except Exception as e:
-        logging.warning('Error unpickling: {}'.format(e))
+        logging.warning(f'Error unpickling: {e}')
 
     try:
         os.remove(PICKLE_FILE)

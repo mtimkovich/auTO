@@ -118,7 +118,7 @@ class Tournament(object):
             return False
         message = ['Missing Discord accounts for the following players:']
         for p in missing:
-            message.append('- {}'.format(p))
+            message.append(f'- {p}')
         await utils.send_list(dms, message)
         return True
 
@@ -154,7 +154,7 @@ class Tournament(object):
         return (r for r in lst if r.name == channel_name)
 
     def create_channel_name(self, player1: str, player2: str) -> str:
-        return utils.channel_name('{} vs {}'.format(player1, player2))
+        return utils.channel_name(f'{player1} vs {player2}')
 
     @manage_channels
     async def clean_up_channels(self, open_matches):
