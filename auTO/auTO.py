@@ -478,6 +478,7 @@ class TOCommands(commands.Cog):
             tourney = self.tourney_start(
                     ctx, saved.tournament_id, saved.api_key)
         logging.info('Loaded saved tournaments.')
+        self.saved = {}
 
     @commands.Cog.listener()
     async def on_ready(self):
