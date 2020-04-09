@@ -2,6 +2,7 @@ import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
 import asyncio
 import collections
+import functools
 import os
 import re
 from typing import Optional, List
@@ -48,6 +49,15 @@ class Challonge(object):
         self.player_map = None
         self.raw_dict = None
 
+    def raw_dict(func):
+        """Erect the raw_dict if it's not already up."""
+        @functools.wraps(func)
+        async def wrapper(self, *args, **kwargs):
+            if self.raw_dict is None:
+                await self.get_raw()
+            return await func(self, *args, **kwargs)
+        return wrapper
+
     async def get_raw(self):
         self.raw_dict = {}
 
@@ -66,10 +76,12 @@ class Challonge(object):
 
             return data
 
-    def get_url(self) -> str:
+    @raw_dict
+    async def get_url(self) -> str:
         return self.raw_dict['tournament']['tournament']['full_challonge_url']
 
-    def get_name(self) -> str:
+    @raw_dict
+    async def get_name(self) -> str:
         return self.raw_dict['tournament']['tournament']['name'].strip()
 
     def get_state(self) -> str:
@@ -93,7 +105,7 @@ class Challonge(object):
     def round_name(self, round_num: int) -> str:
         """Creates the shortened, human-readable version of round names."""
         prefix = 'W' if round_num > 0 else 'L'
-        suffix = f'R{abs(round)}'
+        suffix = f'R{abs(round_num)}'
 
         if self.winners_rounds is None or self.losers_rounds is None:
             return f'{prefix}{suffix}'
@@ -113,6 +125,10 @@ class Challonge(object):
         return f'{prefix}{suffix}'
 
     def set_player_map(self):
+        # Sometimes Challonge seems to use the "group_player_ids" parameter of
+        # "participant" instead of the "id" parameter of "participant" in the
+        # "matches" API. not sure exactly when this happens, but the following
+        # code checks for both.
         self.player_map = {}
         for p in self.raw_dict['participants']:
             if p['participant'].get('name'):
@@ -125,6 +141,7 @@ class Challonge(object):
                 for gpid in p['participant']['group_player_ids']:
                     self.player_map[gpid] = player_name
 
+    @raw_dict
     async def progress_meter(self) -> int:
         tournament = await self.update_data('tournament')
         return tournament['tournament']['progress_meter']
@@ -157,15 +174,13 @@ class Challonge(object):
         async with self.session.post(url, data=self.api_key_dict) as r:
             await r.json()
 
+    @raw_dict
     async def get_matches(self) -> List:
-        """Fetch latest match data."""
-        # sometimes challonge seems to use the "group_player_ids" parameter of
-        # "participant" instead of the "id" parameter of "participant" in the
-        # "matches" api. not sure exactly when this happens, but the following
-        # code checks for both
+        """Fetch latest match data.
 
-        # Unlike the other variables, this one needs to be fetched every time
-        # we use it.
+        Unlike the other variables, this one needs to be fetched every time
+        we use it.
+        """
         matches = []
         for m in await self.update_data('matches'):
             m = m['match']
@@ -218,7 +233,8 @@ class Challonge(object):
                 if p['participant']['name']
                 else p['participant']['username'].strip())
 
-    def get_players(self) -> List[str]:
+    @raw_dict
+    async def get_players(self) -> List[str]:
         return [self.get_player_name(p) for p in self.raw_dict['participants']]
 
     async def get_top8(self) -> Optional[List]:
@@ -234,15 +250,16 @@ class Challonge(object):
 
         return sorted(top8.items())
 
-    def get_player(self, tag: str) -> Optional:
+    @raw_dict
+    async def get_player(self, tag: str) -> Optional:
         for p in self.raw_dict['participants']:
             name = self.get_player_name(p)
             if utils.istrcmp(tag, name):
                 return p
         return None
 
-    def player_url(self, tag: str) -> str:
-        p = self.get_player(tag)
+    async def player_url(self, tag: str) -> str:
+        p = await self.get_player(tag)
         if p is None:
             raise ValueError(f"Can't find player with tag: '{tag}'")
         player = p['participant']
@@ -250,7 +267,7 @@ class Challonge(object):
 
     async def rename(self, tag: str, discord_name: str):
         """Rename player from |tag| to |discord_name|."""
-        url = self.player_url(tag)
+        url = await self.player_url(tag)
         data = self.api_key_dict.copy()
         data['participant[name]'] = discord_name
         try:
@@ -266,7 +283,7 @@ class Challonge(object):
         await self.get_raw()
 
     async def dq(self, tag: str):
-        url = self.player_url(tag)
+        url = await self.player_url(tag)
         async with self.session.delete(url, data=self.api_key_dict) as r:
             await r.json()
 
@@ -279,7 +296,7 @@ async def main():
         gar = Challonge(api_key, tournament_id, session)
         await gar.get_raw()
         await gar.rename('tinklefairy6', 'DJSwerve')
-        print(gar.get_players())
+        print(await gar.get_players())
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()

@@ -50,7 +50,8 @@ class Match(object):
         self.player1_tag = raw['player1']
         self.player2_tag = raw['player2']
         if random() < .5:
-            self.player1_tag, self.player2_tag = self.player2_tag, self.player1_tag
+            self.player1_tag, self.player2_tag = [self.player2_tag,
+                                                  self.player1_tag]
         self.tourney = tourney
         self.raw = raw
         self.guild = tourney.guild

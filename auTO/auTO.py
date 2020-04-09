@@ -239,11 +239,13 @@ class TOCommands(commands.Cog):
             tourney.channel.trigger_typing()
         )
 
-        logging.info('Starting tournament {} on {}'.format(
-            tourney.gar.get_name(), tourney.guild.name))
+        name = await tourney.gar.get_name()
+        url = await tourney.gar.get_url()
+
+        logging.info(f'Starting tournament {name} ({url}) on '
+                     f'{tourney.guild.name}')
         start_msg = await ctx.send(
-                'Starting {}! Please stop your friendlies. {}'
-                .format(tourney.gar.get_name(), tourney.gar.get_url()))
+                f'Starting {name}! Please stop your friendlies. {url}')
         try:
             await start_msg.pin()
         except discord.errors.HttpException as e:
@@ -261,9 +263,9 @@ class TOCommands(commands.Cog):
         )
 
     async def end_tournament(self, ctx, tourney):
+        name = await tourney.gar.get_name()
         confirm = await self.confirm(
-                tourney.owner, '{} is completed. Finalize?'
-                .format(tourney.gar.get_name()))
+                tourney.owner, f'{name} is completed. Finalize?')
         if not confirm:
             return
 
@@ -287,10 +289,11 @@ class TOCommands(commands.Cog):
             return
 
         winner = tourney.mention_user(top8[0][1][0])
+        name = await tourney.gar.get_name()
+        num_players = len(await tourney.gar.get_players())
         message = [
-            'Congrats to the winner of {}: **{}**!!'.format(
-                tourney.gar.get_name(), winner),
-            'We had {} entrants!\n'.format(len(tourney.gar.get_players())),
+            f'Congrats to the winner of {name}: **{winner}**!!',
+            f'We had {num_players} entrants!\n',
         ]
 
         for i, players in top8:
@@ -408,7 +411,7 @@ class TOCommands(commands.Cog):
     @has_tourney
     async def bracket(self, ctx, *, tourney=None):
         await ctx.trigger_typing()
-        await ctx.send(tourney.gar.get_url())
+        await ctx.send(await tourney.gar.get_url())
 
     @auTO.command()
     @has_tourney
@@ -460,7 +463,7 @@ class TOCommands(commands.Cog):
         else:
             await ctx.send(err)
 
-    async def load(self):
+    def load(self):
         if not self.saved:
             return
         for guild in self.bot.guilds:
@@ -474,13 +477,12 @@ class TOCommands(commands.Cog):
                 continue
             tourney = self.tourney_start(
                     ctx, saved.tournament_id, saved.api_key)
-            await tourney.gar.get_raw()
         logging.info('Loaded saved tournaments.')
 
     @commands.Cog.listener()
     async def on_ready(self):
         logging.info('auTO has connected to Discord.')
-        await self.load()
+        self.load()
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -489,7 +491,7 @@ class TOCommands(commands.Cog):
             return
 
         if message.content == '!bracket':
-            await message.channel.send(tourney.gar.get_url())
+            await message.channel.send(await tourney.gar.get_url())
         # If someone posts a netplay code for their opponent, mark their
         # match as underway.
         elif (len(message.mentions) == 1 and
