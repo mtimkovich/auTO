@@ -45,10 +45,12 @@ def manage_channels(func):
 
 
 class MatchPickle(object):
+    """Pickleable version of Match."""
     def __init__(self, match):
+        self.raw = match.raw
         self.player1_id = match.player1.id
         self.player2_id = match.player2.id
-        self.channels = map(lambda c: c.id, match.channels)
+        self.channels = list(map(lambda c: c.id, match.channels))
 
 
 class Match(object):
@@ -66,6 +68,9 @@ class Match(object):
         self.player2 = tourney.get_user(self.player2_tag)
         self.first = True
         self.channels = []
+
+    def pickle(self):
+        return MatchPickle(self)
 
     def tag(self, player: Optional[discord.Member], tag: str,
             mention: bool) -> str:

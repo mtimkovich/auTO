@@ -33,7 +33,15 @@ class TOCommands(commands.Cog):
             return
         tournament_pickle = {}
         for tourney in self.tournament_map.values():
-            tournament_pickle[tourney.guild.id] = TournamentPickle(tourney)
+            tp = TournamentPickle(tourney)
+            for id, m in tourney.called_matches.items():
+                try:
+                    tp.matches[id] = m.pickle()
+                except AttributeError:
+                    continue
+
+            tournament_pickle[tourney.guild.id] = tp
+
         with open(PICKLE_FILE, 'wb') as f:
             pickle.dump(tournament_pickle, f)
         logging.info('Saved active tournaments.')
@@ -477,6 +485,7 @@ class TOCommands(commands.Cog):
                 continue
             tourney = self.tourney_start(
                     ctx, saved.tournament_id, saved.api_key)
+            tourney.category = saved.category
         logging.info('Loaded saved tournaments.')
         self.saved = {}
 
