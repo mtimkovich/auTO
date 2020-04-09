@@ -476,6 +476,7 @@ class TOCommands(commands.Cog):
                     ctx, saved.tournament_id, saved.api_key)
             await tourney.gar.get_raw()
         logging.info('Loaded saved tournaments.')
+        self.saved = {}
 
     @commands.Cog.listener()
     async def on_ready(self):
