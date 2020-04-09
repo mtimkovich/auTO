@@ -73,8 +73,8 @@ class Tournament(object):
             if match is None:
                 return
             elif match_id is None:
-                match_id = match.raw['id']
-            elif match_id != match.raw['id']:
+                match_id = match.id
+            elif match_id != match.id:
                 return
 
         await self.gar.mark_underway(match_id)
@@ -87,9 +87,9 @@ class Tournament(object):
 
     async def report_match(self, match, winner_id, reporter, scores_csv):
         self.add_to_recently_called(match, reporter),
-        await self.gar.report_match(match.raw['id'], winner_id, scores_csv)
+        await self.gar.report_match(match.id, winner_id, scores_csv)
         await match.close()
-        self.called_matches.pop(match.raw['id'])
+        self.called_matches.pop(match.id)
 
     def add_to_recently_called(self, match, reporter):
         """Prevent both players from reporting at the same time."""
@@ -112,7 +112,7 @@ class Tournament(object):
     async def missing_tags(self, owner) -> bool:
         """Check the participants list for players not on the server."""
         dms = await utils.get_dms(owner)
-        missing = [player for player in self.gar.get_players()
+        missing = [player for player in await self.gar.get_players()
                    if not self.get_user(player)]
         if not missing:
             return False

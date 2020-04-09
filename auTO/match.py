@@ -47,13 +47,13 @@ def manage_channels(func):
 class Match(object):
     """Handles private channel creation."""
     def __init__(self, tourney, raw):
+        self.rps = random() < .5
+        self.id = raw['id']
         self.player1_tag = raw['player1']
         self.player2_tag = raw['player2']
-        if random() < .5:
-            self.player1_tag, self.player2_tag = [self.player2_tag,
-                                                  self.player1_tag]
+        self.player1_id = raw['player1_id']
+        self.player2_id = raw['player2_id']
         self.tourney = tourney
-        self.raw = raw
         self.guild = tourney.guild
         self.player1 = tourney.get_user(self.player1_tag)
         self.player2 = tourney.get_user(self.player2_tag)
@@ -72,7 +72,10 @@ class Match(object):
     def name(self, mention: bool = False) -> str:
         player1 = self.tag(self.player1, self.player1_tag, mention)
         player2 = self.tag(self.player2, self.player2_tag, mention)
-        return f'{player1} vs {player2}'
+        if self.rps:
+            return f'{player1} vs {player2}'
+        else:
+            return f'{player2} vs {player1}'
 
     def has_player(self, tag: str) -> bool:
         return tag.lower() in list(

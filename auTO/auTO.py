@@ -393,16 +393,16 @@ class TOCommands(commands.Cog):
             await ctx.send(f'{username} not found in current matches.')
             return
 
-        match_id = match.raw['id']
+        match_id = match.id
         if utils.istrcmp(username, match.player2_tag):
             # Scores are reported with player1's score first.
             scores_csv = '{1}-{0}'.format(*scores)
             player1_win = not player1_win
 
         if player1_win:
-            winner_id = match.raw['player1_id']
+            winner_id = match.player1_id
         else:
-            winner_id = match.raw['player2_id']
+            winner_id = match.player2_id
 
         await tourney.report_match(match, winner_id, username, scores_csv)
         await self.matches(ctx)
