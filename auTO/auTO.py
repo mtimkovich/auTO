@@ -16,9 +16,8 @@ from .match import Match
 from .tournament import Tournament, TournamentPickle, FakeContext
 from . import utils
 
-logging.basicConfig(level=logging.INFO)
-
 PICKLE_FILE = 'auTO.pickle'
+log = logging.getLogger(__name__)
 
 
 class TOCommands(commands.Cog):
@@ -44,7 +43,7 @@ class TOCommands(commands.Cog):
 
         with open(PICKLE_FILE, 'wb') as f:
             pickle.dump(tournament_pickle, f)
-        logging.info('Saved active tournaments.')
+        log.info('Saved active tournaments.')
 
     async def close(self):
         self.save()
@@ -68,15 +67,17 @@ class TOCommands(commands.Cog):
     @auTO.command()
     async def help(self, ctx):
         help_list = [
-            '- `start [URL]` - start TOing',
+            '- `start URL` - start TOing',
             '- `stop` - stop TOing',
-            '- `rename tag @Player` - Rename player to their Discord tag',
-            '- `noshow @Player` - Start DQ process for player',
+            '- `rename TAG @PLAYER` - Rename player to their Discord tag',
+            '- `noshow @PLAYER` - Start DQ process for player',
             '- `update_tags` - get the latest Challonge tags',
             '- `report 0-2` - report a match',
             '- `matches` - print the active matches',
             '- `status` - print how far along the tournament is',
             '- `bracket` - print the bracket URL',
+            '',
+            '<https://github.com/mtimkovich/auTO#running-a-tournament>',
         ]
         await utils.send_list(ctx, help_list)
 
@@ -181,7 +182,7 @@ class TOCommands(commands.Cog):
                 if e.code == 422:
                     await ctx.send('Tournament needs at least 2 players.')
                 else:
-                    logging.warning(e)
+                    log.warning(e)
                 return True
         elif tourney.gar.get_state() == 'ended':
             await ctx.send("Tournament has already finished.")
@@ -250,14 +251,14 @@ class TOCommands(commands.Cog):
         name = await tourney.gar.get_name()
         url = await tourney.gar.get_url()
 
-        logging.info(f'Starting tournament {name} ({url}) on '
+        log.info(f'Starting tournament {name} ({url}) on '
                      f'{tourney.guild.name}.')
         start_msg = await ctx.send(
                 f'Starting {name}! Please stop your friendlies. {url}')
         try:
             await start_msg.pin()
         except discord.errors.HttpException as e:
-            logging.warning(e)
+            log.warning(e)
         await self.matches(ctx)
 
     @auTO.command()
@@ -446,7 +447,7 @@ class TOCommands(commands.Cog):
             try:
                 await msg.add_reaction('🇫')
             except discord.DiscordException as e:
-                logging.warning(e)
+                log.warning(e)
             await tourney.gar.dq(user.display_name)
             await self.matches(ctx)
 
@@ -482,7 +483,7 @@ class TOCommands(commands.Cog):
             try:
                 ctx = FakeContext(guild, saved)
             except ValueError as e:
-                logging.warning(e)
+                log.warning(e)
                 continue
             tourney = self.tourney_start(
                     ctx, saved.tournament_id, saved.api_key)
@@ -492,12 +493,12 @@ class TOCommands(commands.Cog):
                 match = mp.unpickle(tourney)
                 if match.channels:
                     tourney.called_matches[id] = match
-        logging.info('Loaded saved tournaments.')
+        log.info('Loaded saved tournaments.')
         self.saved = {}
 
     @commands.Cog.listener()
     async def on_ready(self):
-        logging.info('auTO has connected to Discord.')
+        log.info('auTO has connected to Discord.')
         await self.load()
 
     @commands.Cog.listener()
@@ -530,7 +531,7 @@ def load_tournaments():
     except OSError:
         pass
     except Exception as e:
-        logging.warning(f'Error unpickling: {e}')
+        log.warning(f'Error unpickling: {e}')
 
     try:
         os.remove(PICKLE_FILE)
@@ -540,8 +541,22 @@ def load_tournaments():
     return saved
 
 
+def setup_logging():
+    LOGS = ['discord', __name__]
+    for l in LOGS:
+        logger = logging.getLogger(l)
+        logger.setLevel(logging.INFO)
+        handler = logging.FileHandler(
+                filename='auTO.log', encoding='utf-8', mode='a')
+        handler.setFormatter(
+                logging.Formatter(
+                    '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+        logger.addHandler(handler)
+
+
 def main():
     saved = load_tournaments()
+    setup_logging()
     bot = Bot(command_prefix='!', description='Talk to the TO',
               case_insensitive=True)
     bot.add_cog(TOCommands(bot, saved))

@@ -8,6 +8,8 @@ from typing import Optional
 
 from . import utils
 
+log = logging.getLogger(__name__)
+
 
 default = discord.PermissionOverwrite(
     read_messages=False,
@@ -153,13 +155,17 @@ class Match(object):
 
         text = self.channels[0]
 
-        await text.send(f"Private channel for {self.name(True)}. Report "
-                        "results with `!auTO report 0-2`. The reporter's "
-                        "score goes first.")
+        rps_winner = (self.player1.display_name if self.rps 
+                      else self.player2.display_name)
+
+        await text.send(
+                f"Private channel for {self.name(True)}. {rps_winner} "
+                "won RPS. Report results with `!auTO report 0-2`. "
+                "The reporter's score goes first.")
 
     @manage_channels
     async def close(self):
         try:
             await asyncio.gather(*(c.delete() for c in self.channels))
         except discord.errors.NotFound as e:
-            logging.warning(f'{e}: {self.channels}')
+            log.warning(f'{e}: {self.channels}')

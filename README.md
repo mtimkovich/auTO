@@ -29,9 +29,9 @@ are able to run TO commands.
 1. [Invite auTO to your server.][setup]
 2. Create your Challonge bracket and add players.
     1. Note: The player's tag in the Challonge bracket **must be** their Discord username. This is
-    their name as it appears on the tournament server and doesn't include the "#12345" identifier
-    at the end.
-3. Run `!auTO start [CHALLONGE_URL]` in the channel you want the tournament to run.
+    their nickname as it appears on the tournament server and doesn't include the "#12345"
+    identifier at the end.
+3. Run `!auTO start CHALLONGE_URL` in the channel you want the tournament to run.
     1. auTO will dm you to ask for your Challonge API key. (This is deleted as soon as the
        tournament finishes.)
 4. auTO will start calling matches!
@@ -39,16 +39,16 @@ are able to run TO commands.
 
 ## Discord Commands
 
-Commands are called by typing `!auTO [command]` in the channel. To run a TO command,
+Commands are called by typing `!auTO COMMAND` in the channel. To run a TO command,
 the user must be an admin or in a role called "TO".
 
 | Command                 | Permissions | Description                                          |
 |-------------------------|-------------|------------------------------------------------------|
-| `start [CHALLONGE_URL]` | All         | Start TOing the bracket                              |
+| `start CHALLONGE_URL`   | All         | Start TOing the bracket                              |
 | `stop`                  | TO          | Stop TOing                                           |
 | `results`               | TO          | Print results after tournament is finalized          |
-| `rename tag @Player`    | TO          | Rename player to their Discord username              |
-| `noshow @Player`        | TO          | Give player 5 minutes to post in the chat or be DQed |
+| `rename TAG @PLAYER`    | TO          | Rename player to their Discord username              |
+| `noshow @PLAYER`        | TO          | Give player 5 minutes to post in the chat or be DQed |
 | `update_tags`           | TO          | Get the latest tags from Challonge                   |
 | `report 0-2`            | Players     | Report a match (reporter's score goes first)         |
 | `matches`               | All         | Print current matches                                |

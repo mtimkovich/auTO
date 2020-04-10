@@ -1,12 +1,15 @@
 import asyncio
 import discord
 from discord import ChannelType
+import logging
 from time import time
 from typing import Optional
 
 from . import challonge
 from .match import manage_channels, Match
 from . import utils
+
+log = logging.getLogger(__name__)
 
 
 class FakeContext(object):
@@ -67,7 +70,7 @@ class Tournament(object):
                 await c.delete()
             # We can't delete channels not created by us.
             except discord.errors.Forbidden as e:
-                logging.warning(e)
+                log.warning(e)
 
     async def mark_match_underway(self, user1, user2):
         match_id = None

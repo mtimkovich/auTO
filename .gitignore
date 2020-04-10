@@ -3,3 +3,4 @@ env/
 __pycache__
 config.yml
 *.pickle
+*.log
