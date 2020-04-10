@@ -69,7 +69,7 @@ class Tournament(object):
                 await asyncio.gather(*(chan.delete() for chan in c.channels))
                 await c.delete()
             # We can't delete channels not created by us.
-            except discord.errors.Forbidden as e:
+            except discord.HTTPException as e:
                 log.warning(e)
 
     async def mark_match_underway(self, user1, user2):
@@ -174,5 +174,8 @@ class Tournament(object):
             player2 = m['player2']
             channel_names.add(self.create_channel_name(player1, player2))
             channel_names.add(self.create_channel_name(player2, player1))
-        await asyncio.gather(*(c.delete() for c in self.category.channels
-                             if c.name not in channel_names))
+        try:
+            await asyncio.gather(*(c.delete() for c in self.category.channels
+                                 if c.name not in channel_names))
+        except discord.HTTPException as e:
+            log.warning(e)

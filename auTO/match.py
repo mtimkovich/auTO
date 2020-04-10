@@ -155,7 +155,7 @@ class Match(object):
 
         text = self.channels[0]
 
-        rps_winner = (self.player1.display_name if self.rps 
+        rps_winner = (self.player1.display_name if self.rps
                       else self.player2.display_name)
 
         await text.send(
@@ -167,5 +167,5 @@ class Match(object):
     async def close(self):
         try:
             await asyncio.gather(*(c.delete() for c in self.channels))
-        except discord.errors.NotFound as e:
-            log.warning(f'{e}: {self.channels}')
+        except discord.HTTPException as e:
+            log.warning(e)
