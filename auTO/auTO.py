@@ -251,7 +251,7 @@ class TOCommands(commands.Cog):
         url = await tourney.gar.get_url()
 
         logging.info(f'Starting tournament {name} ({url}) on '
-                     f'{tourney.guild.name}')
+                     f'{tourney.guild.name}.')
         start_msg = await ctx.send(
                 f'Starting {name}! Please stop your friendlies. {url}')
         try:
