@@ -31,16 +31,16 @@ are able to run TO commands.
     1. Note: The player's tag in the Challonge bracket **must be** their Discord username. This is
     their nickname as it appears on the tournament server and doesn't include the "#12345"
     identifier at the end.
-3. Run `!auTO start CHALLONGE_URL` in the channel you want the tournament to run.
+3. Run `@auTO start CHALLONGE_URL` in the channel you want the tournament to run.
     1. auTO will dm you to ask for your Challonge API key. (This is deleted as soon as the
        tournament finishes.)
 4. auTO will start calling matches!
-5. Players report their matches using the `!auTO report` command.
+5. Players report their matches using the `@auTO report` command.
 
 ## Discord Commands
 
-Commands are called by typing `!auTO COMMAND` in the channel. To run a TO command,
-the user must be an admin or in a role called "TO".
+Commands are called by typing `@auTO COMMAND` or `!auTO COMMAND` in the channel. To run a TO
+command, the user must be an admin or in a role called "TO".
 
 | Command                 | Permissions | Description                                          |
 |-------------------------|-------------|------------------------------------------------------|

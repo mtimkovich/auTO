@@ -160,7 +160,7 @@ class Match(object):
 
         await text.send(
                 f"Private channel for {self.name(True)}. {rps_winner} "
-                "won RPS. Report results with `!auTO report 0-2`. "
+                "won RPS. Report results with `@auTO report 0-2`. "
                 "The reporter's score goes first.")
 
     @manage_channels

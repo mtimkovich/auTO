@@ -66,7 +66,7 @@ class TOCommands(commands.Cog):
         if len(msg) == 2 and re.match(r'\d', msg[1]):
             await self.report(ctx, msg[1])
         elif ctx.invoked_subcommand is None:
-            await ctx.send('Use `!auTO help` for options')
+            await ctx.send('Use `@auTO help` for options')
 
     @auTO.command()
     async def help(self, ctx):
@@ -379,7 +379,7 @@ class TOCommands(commands.Cog):
         await ctx.trigger_typing()
         score_match = re.match(r'(-?\d+)-(-?\d+)', scores_csv)
         if not score_match:
-            await ctx.send('Invalid report. Should be `!auTO report 0-2`')
+            await ctx.send('Invalid report. Should be `@auTO report 0-2`')
             return
 
         scores = list(map(int, score_match.groups()))
@@ -522,8 +522,9 @@ class TOCommands(commands.Cog):
                     message.mentions[0], message.author)
         elif self.bot.user in message.mentions:
             # If someone mentions the bot, see if we can run it as a command.
+            id = self.bot.user.id
             message.content = re.sub(
-                    r'<[^>]*>', '!auTO', message.content, count=1)
+                    rf'<@!?{id}>', '!auTO', message.content, count=1)
             await self.bot.process_commands(message)
 
 
@@ -552,6 +553,7 @@ def load_tournaments():
 
 
 def setup_logging():
+    """Log Discord and auTO messages to file."""
     LOGS = ['discord', __name__]
     for l in LOGS:
         logger = logging.getLogger(l)
