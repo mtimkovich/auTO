@@ -514,12 +514,17 @@ class TOCommands(commands.Cog):
 
         if message.content == '!bracket':
             await message.channel.send(await tourney.gar.get_url())
-        # If someone posts a netplay code for their opponent, mark their
-        # match as underway.
         elif (len(message.mentions) == 1 and
               re.search(r'\b[a-f0-9]{8}\b', message.content)):
+            # If someone posts a netplay code for their opponent, mark their
+            # match as underway.
             await tourney.mark_match_underway(
                     message.mentions[0], message.author)
+        elif self.bot.user in message.mentions:
+            # If someone mentions the bot, see if we can run it as a command.
+            message.content = re.sub(
+                    r'<[^>]*>', '!auTO', message.content, count=1)
+            await self.bot.process_commands(message)
 
 
 class Bot(commands.Bot):

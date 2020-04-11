@@ -1,5 +1,10 @@
 # Changelog
 
+### 1.5.2
+* Introduce `2-0` as a shortcut for `report 2-0`.
+* `@auTO` as an alternative to `!auTO`.
+* Fix bug in match reporting.
+
 ### 1.5.0
 * Create private voice and text channels for each match if granted the "Manage Channels"
   permission.
