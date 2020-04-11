@@ -8,10 +8,11 @@ import logging
 import os
 import pickle
 import re
+import sys
 from typing import Optional
 
 from . import challonge
-from .config import config
+from .config import config, DEBUG
 from .match import Match
 from .tournament import Tournament, TournamentPickle, FakeContext
 from . import utils
@@ -61,7 +62,10 @@ class TOCommands(commands.Cog):
 
     @commands.group(case_insensitive=True)
     async def auTO(self, ctx):
-        if ctx.invoked_subcommand is None:
+        msg = ctx.message.content.split()
+        if len(msg) == 2 and re.match(r'\d', msg[1]):
+            await self.report(ctx, msg[1])
+        elif ctx.invoked_subcommand is None:
             await ctx.send('Use `!auTO help` for options')
 
     @auTO.command()
@@ -72,7 +76,7 @@ class TOCommands(commands.Cog):
             '- `rename TAG @PLAYER` - Rename player to their Discord tag',
             '- `noshow @PLAYER` - Start DQ process for player',
             '- `update_tags` - get the latest Challonge tags',
-            '- `report 0-2` - report a match',
+            '- `report 0-2` or `0-2` - report a match',
             '- `matches` - print the active matches',
             '- `status` - print how far along the tournament is',
             '- `bracket` - print the bracket URL',
@@ -197,8 +201,9 @@ class TOCommands(commands.Cog):
             return None
 
         # Useful for debugging.
-        api_key = config.get('CHALLONGE_KEY')
-        if api_key is None:
+        if DEBUG:
+            api_key = config.get('CHALLONGE_KEY')
+        else:
             api_key = await self.ask_for_challonge_key(ctx.author)
             if api_key is None:
                 return None
@@ -546,12 +551,17 @@ def setup_logging():
     for l in LOGS:
         logger = logging.getLogger(l)
         logger.setLevel(logging.INFO)
-        handler = logging.FileHandler(
-                filename='auTO.log', encoding='utf-8', mode='a')
-        handler.setFormatter(
-                logging.Formatter(
-                    '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-        logger.addHandler(handler)
+        handlers = [
+            logging.FileHandler(
+                filename='auTO.log', encoding='utf-8', mode='a'),
+        ]
+        if DEBUG:
+            handlers.append(logging.StreamHandler(sys.stdout))
+        for handler in handlers:
+            formatter = logging.Formatter(
+                    '%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
 
 
 def main():

@@ -50,7 +50,7 @@ the user must be an admin or in a role called "TO".
 | `rename TAG @PLAYER`    | TO          | Rename player to their Discord username              |
 | `noshow @PLAYER`        | TO          | Give player 5 minutes to post in the chat or be DQed |
 | `update_tags`           | TO          | Get the latest tags from Challonge                   |
-| `report 0-2`            | Players     | Report a match (reporter's score goes first)         |
+| `report 0-2` or `0-2`   | Players     | Report a match (reporter's score goes first)         |
 | `matches`               | All         | Print current matches                                |
 | `status`                | All         | Print how far along the tournament is                |
 | `bracket`               | All         | Print the bracket URL                                |

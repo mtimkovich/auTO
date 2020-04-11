@@ -14,3 +14,5 @@ except FileNotFoundError:
 if config is None or config.get('DISCORD_TOKEN') is None:
     log.error('DISCORD_TOKEN is unset')
     sys.exit(1)
+
+DEBUG = config.get('CHALLONGE_KEY') is not None
