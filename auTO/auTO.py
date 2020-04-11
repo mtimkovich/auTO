@@ -512,6 +512,9 @@ class TOCommands(commands.Cog):
         if tourney is None:
             return
 
+        id = self.bot.user.id
+        bot_mention = re.compile(rf'\s*<@!?{id}>')
+
         if message.content == '!bracket':
             await message.channel.send(await tourney.gar.get_url())
         elif (len(message.mentions) == 1 and
@@ -520,11 +523,10 @@ class TOCommands(commands.Cog):
             # match as underway.
             await tourney.mark_match_underway(
                     message.mentions[0], message.author)
-        elif self.bot.user in message.mentions:
+        elif bot_mention.match(message.content):
             # If someone mentions the bot, see if we can run it as a command.
-            id = self.bot.user.id
-            message.content = re.sub(
-                    rf'<@!?{id}>', '!auTO', message.content, count=1)
+            message.content = bot_mention.sub(
+                    '!auTO', message.content, count=1)
             await self.bot.process_commands(message)
 
 
