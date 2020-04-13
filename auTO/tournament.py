@@ -72,7 +72,7 @@ class Tournament(object):
             except discord.HTTPException as e:
                 log.warning(e)
 
-    async def mark_match_underway(self, user1, user2):
+    async def mark_match_underway(self, user1, user2=None):
         match_id = None
 
         for user in [user1, user2]:
@@ -81,6 +81,8 @@ class Tournament(object):
                 return
             elif match_id is None:
                 match_id = match.id
+                if user2 is None:
+                    break
             elif match_id != match.id:
                 return
 

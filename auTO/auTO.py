@@ -20,6 +20,8 @@ from . import utils
 PICKLE_FILE = 'auTO.pickle'
 log = logging.getLogger(__name__)
 
+netplay_code = re.compile(r'\b[a-f0-9]{8}\b')
+
 
 class TOCommands(commands.Cog):
     def __init__(self, bot, saved):
@@ -506,6 +508,19 @@ class TOCommands(commands.Cog):
         log.info('auTO has connected to Discord.')
         await self.load()
 
+    @has_tourney
+    async def has_netplay_code(self, ctx, *, tourney=None):
+        """Mark matches underway when a netplay code is posted."""
+        message = ctx.message
+        if not netplay_code.search(message.content):
+            return
+        if len(message.mentions) == 1:
+            await tourney.mark_match_underway(
+                    message.author, message.mentions[0])
+        elif (tourney.category and
+                message.channel in tourney.category.text_channels):
+            await tourney.mark_match_underway(message.author)
+
     @commands.Cog.listener()
     async def on_message(self, message):
         id = self.bot.user.id
@@ -518,18 +533,7 @@ class TOCommands(commands.Cog):
             await self.bot.process_commands(message)
             return
 
-        tourney = self.tournament_map.get(message.guild)
-        if tourney is None:
-            return
-
-        if message.content == '!bracket':
-            await message.channel.send(await tourney.gar.get_url())
-        elif (len(message.mentions) == 1 and
-              re.search(r'\b[a-f0-9]{8}\b', message.content)):
-            # If someone posts a netplay code for their opponent, mark their
-            # match as underway.
-            await tourney.mark_match_underway(
-                    message.mentions[0], message.author)
+        await self.has_netplay_code(self.bot.get_context(message))
 
 
 class Bot(commands.Bot):
