@@ -124,10 +124,13 @@ class Challonge():
         return f'{prefix}{suffix}'
 
     def _set_player_map(self):
-        # Sometimes Challonge seems to use the "group_player_ids" parameter of
-        # "participant" instead of the "id" parameter of "participant" in the
-        # "matches" API. not sure exactly when this happens, but the following
-        # code checks for both.
+        """Creates map from id to player tag.
+
+        Sometimes Challonge seems to use the "group_player_ids" parameter of
+        "participant" instead of the "id" parameter of "participant" in the
+        "matches" API. Not sure exactly when this happens, but the following
+        code checks for both.
+        """
         self.player_map = {}
         for p in self.raw_dict['participants']:
             if p['participant'].get('name'):

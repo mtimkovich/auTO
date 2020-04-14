@@ -54,6 +54,10 @@ def is_to(func):
     return wrapper
 
 
+class ChallongeError(Exception):
+    """Error code in Challonge response."""
+
+
 class TOCommands(commands.Cog):
     def __init__(self, bot, saved):
         self.bot = bot
@@ -67,9 +71,9 @@ class TOCommands(commands.Cog):
         tournament_pickle = {}
         for tourney in self.tournament_map.values():
             tp = TournamentPickle(tourney)
-            for i, m in tourney.called_matches.items():
+            for id, m in tourney.called_matches.items():
                 try:
-                    tp.matches[i] = m.pickle()
+                    tp.matches[id] = m.pickle()
                 except AttributeError:
                     continue
 
@@ -175,7 +179,7 @@ class TOCommands(commands.Cog):
                 return content
             await owner.send('Invalid API key, try again.')
 
-    async def confirm(self, user, question) -> bool:
+    async def _confirm(self, user, question) -> bool:
         """DM the user a yes/no question."""
         await user.send(f'{question} [Y/n]')
         msg = await self.bot.wait_for(
@@ -183,7 +187,7 @@ class TOCommands(commands.Cog):
 
         return msg.content.strip().lower() in ['y', 'yes']
 
-    async def invalid_state(self, ctx, tourney) -> bool:
+    async def _invalid_state(self, ctx, tourney) -> bool:
         if tourney.gar.get_state() == 'pending':
             try:
                 await tourney.gar.start()
@@ -198,12 +202,10 @@ class TOCommands(commands.Cog):
             return True
         return False
 
-    async def create_tournament(self, ctx, url: str):
-        try:
-            tournament_id = challonge.extract_id(url)
-        except ValueError as e:
-            await ctx.send(e)
-            return None
+    async def _create_tournament(self, ctx, url: str) -> Optional:
+        tournament_id = challonge.extract_id(url)
+
+        key_error = ChallongeError('Invalid API Key')
 
         # Useful for debugging.
         if DEBUG:
@@ -211,7 +213,7 @@ class TOCommands(commands.Cog):
         else:
             api_key = await self._ask_for_challonge_key(ctx.author)
             if api_key is None:
-                return None
+                raise key_error
 
         tourney = self._tourney_start(ctx, tournament_id, api_key)
 
@@ -220,22 +222,20 @@ class TOCommands(commands.Cog):
         except ClientResponseError as e:
             if e.code == 401:
                 await ctx.author.dm_channel.send('Invalid API Key')
-                return None
+                raise ChallongeError
             if e.code == 404:
-                await ctx.send('Invalid tournament URL.')
-                return None
+                raise ChallongeError('Invalid tournament URL.')
             raise e
 
-        if await self.invalid_state(ctx, tourney):
-            return None
+        if await self._invalid_state(ctx, tourney):
+            raise ChallongeError('Invalid tournament state.')
 
         has_missing = await tourney.missing_tags(ctx.author)
         if has_missing:
-            confirm = await self.confirm(ctx.author, 'Continue anyway?')
-            if confirm:
-                await self.update_tags(ctx)
-            else:
-                return None
+            confirm = await self._confirm(ctx.author, 'Continue anyway?')
+            if not confirm:
+                raise ValueError
+            await self.update_tags(ctx)
         return tourney
 
     @auTO.command(brief='Challonge URL of tournament')
@@ -245,7 +245,12 @@ class TOCommands(commands.Cog):
             await ctx.send('A tournament is already in progress')
             return
 
-        tourney = await self.create_tournament(ctx, url)
+        try:
+            tourney = await self._create_tournament(ctx, url)
+        except (ValueError, ChallongeError, ClientResponseError) as e:
+            tourney = None
+            if str(e):
+                await ctx.send(e)
         if tourney is None:
             await self._tourney_stop(ctx.guild)
             return
@@ -283,7 +288,7 @@ class TOCommands(commands.Cog):
 
     async def _end_tournament(self, tourney):
         name = await tourney.gar.get_name()
-        confirm = await self.confirm(
+        confirm = await self._confirm(
             tourney.owner, f'{name} is completed. Finalize?')
         if not confirm:
             return
@@ -348,15 +353,17 @@ class TOCommands(commands.Cog):
         create_channels = []
         for m in sorted(open_matches,
                         key=lambda m: m['suggested_play_order']):
-            # We want to only ping players the first time their match is
-            # called.
             if m['id'] not in tourney.called_matches:
                 match = Match(tourney, m)
                 tourney.called_matches[m['id']] = match
-                create_channels.append(match.create_channels())
 
             match = tourney.called_matches[m['id']]
+            if not match.channels:
+                create_channels.append(match.create_channels())
+
             round = f"**{m['round']}**: "
+            # We want to only ping players the first time their match is
+            # called.
             if match.first:
                 players = match.name(True)
                 match.first = False
@@ -498,8 +505,7 @@ class TOCommands(commands.Cog):
                 tourney.category = ctx.guild.get_channel(saved.category_id)
             for id, mp in saved.matches.items():
                 match = mp.unpickle(tourney)
-                if match.channels:
-                    tourney.called_matches[id] = match
+                tourney.called_matches[id] = match
         log.info('Loaded saved tournaments.')
         self.saved = {}
 
@@ -508,10 +514,11 @@ class TOCommands(commands.Cog):
         log.info('auTO has connected to Discord.')
         await self._load()
 
-    @has_tourney
-    async def _has_netplay_code(self, ctx, *, tourney=None):
+    async def _has_netplay_code(self, message):
         """Mark matches underway when a netplay code is posted."""
-        message = ctx.message
+        tourney = self.tournament_map.get(message.guild)
+        if tourney is None:
+            return
         if not netplay_code.search(message.content):
             return
         if len(message.mentions) == 1:
@@ -523,6 +530,8 @@ class TOCommands(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        if message.author == self.bot.user:
+            return
         id = self.bot.user.id
         bot_mention = re.compile(rf'\s*<@!?{id}>')
 
@@ -533,7 +542,7 @@ class TOCommands(commands.Cog):
             await self.bot.process_commands(message)
             return
 
-        await self._has_netplay_code(self.bot.get_context(message))
+        await self._has_netplay_code(message)
 
 
 class Bot(commands.Bot):
@@ -549,7 +558,7 @@ def load_tournaments():
             saved = pickle.load(f)
     except OSError:
         pass
-    except Exception as e:
+    except Exception as e: # pylint: disable=broad-except
         log.warning(f'Error unpickling: {e}')
 
     try:

@@ -74,7 +74,6 @@ class MatchPickle():
         return match
 
 
-
 class Match():
     """Handles private channel creation."""
     def __init__(self, tourney, raw, rps=None):
@@ -97,8 +96,8 @@ class Match():
     def pickle(self):
         return MatchPickle(self)
 
-    def tag(self, player: Optional[discord.Member], tag: str,
-            mention: bool) -> str:
+    def _tag(self, player: Optional[discord.Member], tag: str,
+             mention: bool) -> str:
         if player is None:
             return tag
         if mention:
@@ -106,8 +105,8 @@ class Match():
         return player.display_name
 
     def name(self, mention: bool = False) -> str:
-        player1 = self.tag(self.player1, self.player1_tag, mention)
-        player2 = self.tag(self.player2, self.player2_tag, mention)
+        player1 = self._tag(self.player1, self.player1_tag, mention)
+        player2 = self._tag(self.player2, self.player2_tag, mention)
         if self.rps:
             return f'{player1} vs {player2}'
         return f'{player2} vs {player1}'
@@ -126,7 +125,7 @@ class Match():
 
     @manage_channels
     async def create_channels(self):
-        if not (self.player1 and self.player2):
+        if not self.player1 or not self.player2:
             return
 
         overwrites = {

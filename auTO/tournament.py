@@ -162,7 +162,7 @@ class Tournament():
             lst = self.guild.channels
         return (r for r in lst if r.name == channel_name)
 
-    def create_channel_name(self, a: str, b: str) -> str:
+    def _create_channel_name(self, a: str, b: str) -> str:
         return utils.channel_name(f'{a} vs {b}')
 
     @manage_channels
@@ -174,8 +174,8 @@ class Tournament():
         for m in open_matches:
             player1 = m['player1']
             player2 = m['player2']
-            channel_names.add(self.create_channel_name(player1, player2))
-            channel_names.add(self.create_channel_name(player2, player1))
+            channel_names.add(self._create_channel_name(player1, player2))
+            channel_names.add(self._create_channel_name(player2, player1))
         try:
             await asyncio.gather(*(c.delete() for c in self.category.channels
                                    if c.name not in channel_names))
