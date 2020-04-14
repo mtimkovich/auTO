@@ -541,6 +541,9 @@ class TOCommands(commands.Cog):
                 '!auTO', message.content, count=1)
             await self.bot.process_commands(message)
             return
+        if message.content == '!bracket':
+            await ctx.send(await tourney.gar.get_url())
+            return
 
         await self._has_netplay_code(message)
 
