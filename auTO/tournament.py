@@ -1,9 +1,10 @@
 import asyncio
-import discord
-from discord import ChannelType
 import logging
 from time import time
 from typing import Optional
+
+import discord
+from discord import ChannelType
 
 from . import challonge
 from .match import manage_channels, Match
@@ -12,7 +13,7 @@ from . import utils
 log = logging.getLogger(__name__)
 
 
-class FakeContext(object):
+class FakeContext():
     def __init__(self, guild, saved):
         self.guild = guild
         self.channel = guild.get_channel(saved.channel_id)
@@ -22,7 +23,7 @@ class FakeContext(object):
             raise ValueError('Error loading tournament')
 
 
-class TournamentPickle(object):
+class TournamentPickle():
     """Pickleable version of Tournament."""
     def __init__(self, tourney):
         self.channel_id = tourney.channel.id
@@ -35,7 +36,7 @@ class TournamentPickle(object):
         self.matches = {}
 
 
-class Tournament(object):
+class Tournament():
     """Tournaments are unique to a guild."""
     def __init__(self, ctx, tournament_id, api_key, session):
         self.guild = ctx.guild
@@ -63,7 +64,7 @@ class Tournament(object):
     async def delete_matches_category(self):
         """Delete matches category and all its channels."""
         existing_categories = self.get_channels(
-                'matches', ChannelType.category)
+            'matches', ChannelType.category)
         for c in existing_categories:
             try:
                 await asyncio.gather(*(chan.delete() for chan in c.channels))
@@ -79,7 +80,7 @@ class Tournament(object):
             match = self.find_match(user.display_name)
             if match is None:
                 return
-            elif match_id is None:
+            if match_id is None:
                 match_id = match.id
                 if user2 is None:
                     break
@@ -95,12 +96,12 @@ class Tournament(object):
         return None
 
     async def report_match(self, match, winner_id, reporter, scores_csv):
-        self.add_to_recently_called(match, reporter),
+        self._add_to_recently_called(match, reporter)
         await self.gar.report_match(match.id, winner_id, scores_csv)
         await match.close()
         self.called_matches.pop(match.id)
 
-    def add_to_recently_called(self, match, reporter):
+    def _add_to_recently_called(self, match, reporter):
         """Prevent both players from reporting at the same time."""
         if utils.istrcmp(match.player1_tag, reporter):
             other = match.player2_tag
@@ -114,8 +115,7 @@ class Tournament(object):
         if last_report_time is not None:
             if time() - last_report_time < 10:
                 return True
-            else:
-                self.recently_called.pop(reporter)
+            self.recently_called.pop(reporter)
         return False
 
     async def missing_tags(self, owner) -> bool:
@@ -146,7 +146,7 @@ class Tournament(object):
     def get_user(self, username: str) -> Optional[discord.Member]:
         """Get member by username."""
         return next((m for m in self.guild.members
-                    if utils.istrcmp(m.display_name, username)), None)
+                     if utils.istrcmp(m.display_name, username)), None)
 
     def get_role(self, role_name: str) -> Optional[discord.Role]:
         return next((r for r in self.guild.roles if r.name == role_name), None)
@@ -162,8 +162,8 @@ class Tournament(object):
             lst = self.guild.channels
         return (r for r in lst if r.name == channel_name)
 
-    def create_channel_name(self, player1: str, player2: str) -> str:
-        return utils.channel_name(f'{player1} vs {player2}')
+    def create_channel_name(self, a: str, b: str) -> str:
+        return utils.channel_name(f'{a} vs {b}')
 
     @manage_channels
     async def clean_up_channels(self, open_matches):
@@ -178,6 +178,6 @@ class Tournament(object):
             channel_names.add(self.create_channel_name(player2, player1))
         try:
             await asyncio.gather(*(c.delete() for c in self.category.channels
-                                 if c.name not in channel_names))
+                                   if c.name not in channel_names))
         except discord.HTTPException as e:
             log.warning(e)

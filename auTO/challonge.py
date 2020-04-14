@@ -1,5 +1,4 @@
-import aiohttp
-from aiohttp.client_exceptions import ClientResponseError
+"""Challonge API wrapper."""
 import asyncio
 import collections
 import functools
@@ -7,13 +6,16 @@ import os
 import re
 from typing import Optional, List
 
+import aiohttp
+from aiohttp.client_exceptions import ClientResponseError
+
 from . import utils
 
 BASE_CHALLONGE_API_URL = 'https://api.challonge.com/v1/tournaments'
 URLS = {
     'tournament': os.path.join(BASE_CHALLONGE_API_URL, '{}.json'),
     'participants': os.path.join(
-            BASE_CHALLONGE_API_URL, '{}', 'participants.json'),
+        BASE_CHALLONGE_API_URL, '{}', 'participants.json'),
     'matches': os.path.join(BASE_CHALLONGE_API_URL, '{}', 'matches.json'),
 }
 
@@ -33,11 +35,20 @@ def extract_id(url):
 
     if subdomain is None:
         return tourney
-    else:
-        return f'{subdomain}-{tourney}'
+    return f'{subdomain}-{tourney}'
 
 
-class Challonge(object):
+def raw_dict(func):
+    """Erect the raw_dict if it's not already up."""
+    @functools.wraps(func)
+    async def wrapper(self, *args, **kwargs):
+        if self.raw_dict is None:
+            await self.get_raw()
+        return await func(self, *args, **kwargs)
+    return wrapper
+
+
+class Challonge():
     def __init__(self, api_key, tournament_id, session):
         self.api_key = api_key
         self.api_key_dict = {'api_key': self.api_key}
@@ -49,22 +60,13 @@ class Challonge(object):
         self.player_map = None
         self.raw_dict = None
 
-    def raw_dict(func):
-        """Erect the raw_dict if it's not already up."""
-        @functools.wraps(func)
-        async def wrapper(self, *args, **kwargs):
-            if self.raw_dict is None:
-                await self.get_raw()
-            return await func(self, *args, **kwargs)
-        return wrapper
-
     async def get_raw(self):
         self.raw_dict = {}
 
-        await asyncio.gather(*(self.update_data(key) for key in URLS.keys()))
+        await asyncio.gather(*(self.update_data(key) for key in URLS))
 
-        self.set_player_map()
-        self.max_rounds()
+        self._set_player_map()
+        self._max_rounds()
 
         return self.raw_dict
 
@@ -87,11 +89,11 @@ class Challonge(object):
     def get_state(self) -> str:
         return self.raw_dict['tournament']['tournament']['state']
 
-    def is_elimination(self) -> bool:
+    def _is_elimination(self) -> bool:
         return (self.raw_dict['tournament']['tournament']['tournament_type']
                 .endswith('elimination'))
 
-    def max_rounds(self):
+    def _max_rounds(self):
         for match in self.raw_dict['matches']:
             round_num = match['match']['round']
             if self.losers_rounds is None or self.winners_rounds is None:
@@ -112,19 +114,16 @@ class Challonge(object):
 
         if round_num == self.winners_rounds:
             return 'GF'
-        elif (round_num == self.winners_rounds - 1 or
-                round_num == self.losers_rounds):
+        if round_num in (self.winners_rounds - 1, self.losers_rounds):
             suffix = 'F'
-        elif (round_num == self.winners_rounds - 2 or
-                round_num == self.losers_rounds + 1):
+        elif round_num in (self.winners_rounds - 2, self.losers_rounds + 1):
             suffix = 'SF'
-        elif (round_num == self.winners_rounds - 3 or
-                round_num == self.losers_rounds + 2):
+        elif round_num in (self.winners_rounds - 3, self.losers_rounds + 2):
             suffix = 'QF'
 
         return f'{prefix}{suffix}'
 
-    def set_player_map(self):
+    def _set_player_map(self):
         # Sometimes Challonge seems to use the "group_player_ids" parameter of
         # "participant" instead of the "id" parameter of "participant" in the
         # "matches" API. not sure exactly when this happens, but the following
@@ -135,7 +134,7 @@ class Challonge(object):
                 player_name = p['participant']['name'].strip()
             else:
                 player_name = p['participant'].get(
-                        'username', '<unknown>').strip()
+                    'username', '<unknown>').strip()
             self.player_map[p['participant'].get('id')] = player_name
             if p['participant'].get('group_player_ids'):
                 for gpid in p['participant']['group_player_ids']:
@@ -187,15 +186,11 @@ class Challonge(object):
 
             player1_id = m['player1_id']
             player2_id = m['player2_id']
-            id = m['id']
-            state = m['state']
             round_num = m['round']
-            underway = m['underway_at'] is not None
             winner_id = m['winner_id']
             loser_id = m['loser_id']
-            suggested_play_order = m['suggested_play_order']
 
-            if self.is_elimination():
+            if self._is_elimination():
                 round_name = self.round_name(round_num)
             else:
                 round_name = f'R{round_num}'
@@ -213,29 +208,30 @@ class Challonge(object):
                 loser = self.player_map[loser_id]
 
             match = {
-                'id': id,
+                'id': m['id'],
                 'loser': loser,
                 'player1': player1,
                 'player1_id': player1_id,
                 'player2': player2,
                 'player2_id': player2_id,
                 'round': round_name,
-                'state': state,
-                'suggested_play_order': suggested_play_order,
-                'underway': underway,
+                'state': m['state'],
+                'suggested_play_order': m['suggested_play_order'],
+                'underway': m['underway_at'] is not None,
                 'winner': winner,
             }
             matches.append(match)
         return matches
 
-    def get_player_name(self, p) -> str:
+    def _get_player_name(self, p) -> str:
         return (p['participant']['name'].strip()
                 if p['participant']['name']
                 else p['participant']['username'].strip())
 
     @raw_dict
     async def get_players(self) -> List[str]:
-        return [self.get_player_name(p) for p in self.raw_dict['participants']]
+        return [self._get_player_name(p)
+                for p in self.raw_dict['participants']]
 
     async def get_top8(self) -> Optional[List]:
         await self.get_raw()
@@ -246,20 +242,20 @@ class Challonge(object):
         for p in self.raw_dict['participants']:
             rank = p['participant']['final_rank']
             if rank <= 7:
-                top8[rank].append(self.get_player_name(p))
+                top8[rank].append(self._get_player_name(p))
 
         return sorted(top8.items())
 
     @raw_dict
-    async def get_player(self, tag: str) -> Optional:
+    async def _get_player(self, tag: str) -> Optional:
         for p in self.raw_dict['participants']:
-            name = self.get_player_name(p)
+            name = self._get_player_name(p)
             if utils.istrcmp(tag, name):
                 return p
         return None
 
-    async def player_url(self, tag: str) -> str:
-        p = await self.get_player(tag)
+    async def _player_url(self, tag: str) -> str:
+        p = await self._get_player(tag)
         if p is None:
             raise ValueError(f"Can't find player with tag: '{tag}'")
         player = p['participant']
@@ -267,7 +263,7 @@ class Challonge(object):
 
     async def rename(self, tag: str, discord_name: str):
         """Rename player from |tag| to |discord_name|."""
-        url = await self.player_url(tag)
+        url = await self._player_url(tag)
         data = self.api_key_dict.copy()
         data['participant[name]'] = discord_name
         try:
@@ -276,14 +272,14 @@ class Challonge(object):
         except ClientResponseError as e:
             if e.code == 422:
                 raise ValueError(
-                        f"Can't rename '{tag}' to '{discord_name}'. "
-                        "Possible duplicate?")
+                    f"Can't rename '{tag}' to '{discord_name}'. "
+                    "Possible duplicate?")
             raise e
 
         await self.get_raw()
 
     async def dq(self, tag: str):
-        url = await self.player_url(tag)
+        url = await self._player_url(tag)
         async with self.session.delete(url, data=self.api_key_dict) as r:
             await r.json()
 

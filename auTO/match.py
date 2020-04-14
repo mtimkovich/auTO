@@ -1,23 +1,23 @@
 import asyncio
-import discord
-from discord import ChannelType
 import functools
 import logging
 from random import random
 from typing import Optional
+
+import discord
 
 from . import utils
 
 log = logging.getLogger(__name__)
 
 
-default = discord.PermissionOverwrite(
+DEFAULT = discord.PermissionOverwrite(
     read_messages=False,
     send_messages=False,
     add_reactions=False,
 )
 
-player_perm = discord.PermissionOverwrite(
+PLAYER_PERM = discord.PermissionOverwrite(
     read_messages=True,
     send_messages=True,
     speak=True,
@@ -25,7 +25,7 @@ player_perm = discord.PermissionOverwrite(
     add_reactions=True,
 )
 
-voice_default = discord.PermissionOverwrite(
+VOICE_DEFAULT = discord.PermissionOverwrite(
     view_channel=True,
     connect=True,
     stream=False,
@@ -46,7 +46,7 @@ def manage_channels(func):
     return wrapper
 
 
-class MatchPickle(object):
+class MatchPickle():
     """Pickleable version of Match."""
     def __init__(self, match):
         self.id = match.id
@@ -74,7 +74,8 @@ class MatchPickle(object):
         return match
 
 
-class Match(object):
+
+class Match():
     """Handles private channel creation."""
     def __init__(self, tourney, raw, rps=None):
         if rps is None:
@@ -100,22 +101,20 @@ class Match(object):
             mention: bool) -> str:
         if player is None:
             return tag
-        elif mention:
+        if mention:
             return player.mention
-        else:
-            return player.display_name
+        return player.display_name
 
     def name(self, mention: bool = False) -> str:
         player1 = self.tag(self.player1, self.player1_tag, mention)
         player2 = self.tag(self.player2, self.player2_tag, mention)
         if self.rps:
             return f'{player1} vs {player2}'
-        else:
-            return f'{player2} vs {player1}'
+        return f'{player2} vs {player1}'
 
     def has_player(self, tag: str) -> bool:
         return tag.lower() in list(
-                map(lambda s: s.lower(), [self.player1_tag, self.player2_tag]))
+            map(lambda s: s.lower(), [self.player1_tag, self.player2_tag]))
 
     def update_player(self, old_tag: str, member: discord.Member):
         if utils.istrcmp(self.player1_tag, old_tag):
@@ -131,18 +130,18 @@ class Match(object):
             return
 
         overwrites = {
-            self.guild.default_role: default,
-            self.guild.me: player_perm,
-            self.player1: player_perm,
-            self.player2: player_perm,
+            self.guild.default_role: DEFAULT,
+            self.guild.me: PLAYER_PERM,
+            self.player1: PLAYER_PERM,
+            self.player2: PLAYER_PERM,
         }
 
         to_role = self.tourney.get_role('TO')
         if to_role is not None:
-            overwrites[to_role] = player_perm
+            overwrites[to_role] = PLAYER_PERM
 
         voice_overwrites = overwrites.copy()
-        voice_overwrites[self.guild.default_role] = voice_default
+        voice_overwrites[self.guild.default_role] = VOICE_DEFAULT
 
         name = utils.channel_name(self.name())
 
@@ -159,9 +158,9 @@ class Match(object):
                       else self.player2.display_name)
 
         await text.send(
-                f"Private channel for {self.name(True)}. {rps_winner} "
-                "won RPS. Report results with `@auTO report 0-2`. "
-                "The reporter's score goes first.")
+            f"Private channel for {self.name(True)}. {rps_winner} won RPS. "
+            "Report results with `@auTO report 0-2`. "
+            "The reporter's score goes first.")
 
     @manage_channels
     async def close(self):
