@@ -514,11 +514,8 @@ class TOCommands(commands.Cog):
         log.info('auTO has connected to Discord.')
         await self._load()
 
-    async def _has_netplay_code(self, message):
+    async def _has_netplay_code(self, tourney, message):
         """Mark matches underway when a netplay code is posted."""
-        tourney = self.tournament_map.get(message.guild)
-        if tourney is None:
-            return
         if not netplay_code.search(message.content):
             return
         if len(message.mentions) == 1:
@@ -541,11 +538,15 @@ class TOCommands(commands.Cog):
                 '!auTO', message.content, count=1)
             await self.bot.process_commands(message)
             return
+
+        tourney = self.tournament_map.get(message.guild)
+        if tourney is None:
+            return
         if message.content == '!bracket':
-            await ctx.send(await tourney.gar.get_url())
+            await message.channel.send(await tourney.gar.get_url())
             return
 
-        await self._has_netplay_code(message)
+        await self._has_netplay_code(tourney, message)
 
 
 class Bot(commands.Bot):
