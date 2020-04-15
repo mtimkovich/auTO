@@ -14,6 +14,7 @@ from discord.ext import commands
 
 from . import challonge
 from .config import config, DEBUG
+from .help import help
 from .match import Match
 from .tournament import Tournament, TournamentPickle, FakeContext
 from . import utils
@@ -122,14 +123,14 @@ class auTO(commands.Cog):
     #     ]
     #     await utils.send_list(ctx, help_list)
 
-    @commands.command(brief='get latest Challonge tags')
+    @commands.command(**help['update_tags'])
     @has_tourney
     @is_to
     # pylint: disable=unused-argument
     async def update_tags(self, ctx, *, tourney=None):
         await tourney.gar.get_raw()
 
-    @commands.command(brief='rename player to their Discord tag')
+    @commands.command(**help['rename'])
     @has_tourney
     @is_to
     async def rename(self, ctx, challonge_tag: str, member: discord.Member,
@@ -146,7 +147,7 @@ class auTO(commands.Cog):
 
         await ctx.send(f'Renamed {challonge_tag} to {member.display_name}.')
 
-    @commands.command(brief='how far along the tournament is')
+    @commands.command(**help['status'])
     @has_tourney
     async def status(self, ctx, *, tourney=None):
         await ctx.trigger_typing()
@@ -238,9 +239,8 @@ class auTO(commands.Cog):
             await self.update_tags(ctx)
         return tourney
 
-    @commands.command(brief='start running bracket')
+    @commands.command(**help['start'])
     async def start(self, ctx, url: str):
-        """Sets tournament URL and start calling matches."""
         if self.tournament_map.get(ctx.guild) is not None:
             await ctx.send('A tournament is already in progress')
             return
@@ -275,7 +275,7 @@ class auTO(commands.Cog):
             log.warning(e)
         await self.matches(ctx)
 
-    @commands.command(brief='stop TOing')
+    @commands.command(**help['stop'])
     @has_tourney
     @is_to
     # pylint: disable=unused-argument
@@ -300,7 +300,7 @@ class auTO(commands.Cog):
                 raise e
         await self._print_results(tourney)
 
-    @commands.command(brief='print Top 8')
+    @commands.command(**help['results'])
     @has_tourney
     @is_to
     # pylint: disable=unused-argument
@@ -331,11 +331,10 @@ class auTO(commands.Cog):
             self.bot.change_presence(),
         )
 
-    @commands.command(brief='print current matches')
+    @commands.command(**help['matches'])
     @has_tourney
     # pylint: disable=unused-argument
     async def matches(self, ctx, *, tourney=None):
-        """Checks for match updates and prints matches to the channel."""
         await tourney.channel.trigger_typing()
         await asyncio.wait_for(self._load(), 2)
         open_matches = await tourney.get_open_matches()
@@ -383,7 +382,7 @@ class auTO(commands.Cog):
             *(msg.delete() for msg in tourney.previous_match_msgs))
         tourney.previous_match_msgs = aws[0]
 
-    @commands.command(brief='report a match')
+    @commands.command(**help['report'])
     @has_tourney
     async def report(self, ctx, scores_csv: str, *, tourney=None,
                      username=None):
@@ -431,13 +430,13 @@ class auTO(commands.Cog):
         await tourney.report_match(match, winner_id, username, scores_csv)
         await self.matches(ctx)
 
-    @commands.command(brief='print bracket URL')
+    @commands.command(**help['bracket'])
     @has_tourney
     async def bracket(self, ctx, *, tourney=None):
         await ctx.trigger_typing()
         await ctx.send(await tourney.gar.get_url())
 
-    @commands.command(brief='start DQ process for player')
+    @commands.command(**help['noshow'])
     @has_tourney
     @is_to
     async def noshow(self, ctx, user: discord.Member, *, tourney=None):
