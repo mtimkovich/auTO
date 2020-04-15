@@ -462,6 +462,8 @@ class auTO(commands.Cog):
             msg = ctx.message.content.split()
             if len(msg) == 2 and re.match(r'\d', msg[1]):
                 await self.report(ctx, msg[1])
+            else:
+                await ctx.send('Type `@auTO help` for options.')
             return
         if (isinstance(err, commands.errors.CommandInvokeError) and
                 isinstance(err.original, ClientResponseError)):
