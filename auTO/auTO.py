@@ -98,14 +98,6 @@ class auTO(commands.Cog):
         if tourney is not None:
             await tourney.delete_matches_category()
 
-    # @commands.group(case_insensitive=True)
-    # async def auTO(self, ctx):
-    #     msg = ctx.message.content.split()
-    #     if len(msg) == 2 and re.match(r'\d', msg[1]):
-    #         await self.report(ctx, msg[1])
-    #     elif ctx.invoked_subcommand is None:
-    #         await ctx.send('Use `@auTO help` for options')
-
     # @commands.command()
     # async def help(self, ctx):
     #     help_list = [
@@ -467,7 +459,9 @@ class auTO(commands.Cog):
     @commands.Cog.listener()
     async def on_command_error(self, ctx, err):
         if isinstance(err, commands.CommandNotFound):
-            # These are useless and clutter the log.
+            msg = ctx.message.content.split()
+            if len(msg) == 2 and re.match(r'\d', msg[1]):
+                await self.report(ctx, msg[1])
             return
         if (isinstance(err, commands.errors.CommandInvokeError) and
                 isinstance(err.original, ClientResponseError)):
@@ -535,12 +529,6 @@ class auTO(commands.Cog):
         await self._has_netplay_code(tourney, message)
 
 
-class Bot(commands.Bot):
-    async def close(self):
-        await self.get_cog('auTO').close()
-        await super().close()
-
-
 def load_tournaments():
     saved = {}
     try:
@@ -578,19 +566,27 @@ def setup_logging():
             logger.addHandler(handler)
 
 
+class Bot(commands.Bot):
+    async def close(self):
+        await self.get_cog('auTO').close()
+        await super().close()
+
+
 def iprefix(bot, message):
     """Make prefix case insensitive and respond to @mentions."""
     msg = message.content
-    if msg.lower().startswith('!auto '):
-        return commands.when_mentioned_or(msg[:6])(bot, message)
+    prefix = '!auto '
+    if msg.lower().startswith(prefix):
+        return commands.when_mentioned_or(msg[:len(prefix)])(bot, message)
     return commands.when_mentioned(bot, message)
 
 
 def main():
     saved = load_tournaments()
     setup_logging()
+    github = 'https://github.com/mtimkovich/auTO#running-a-tournament'
     bot = Bot(command_prefix=iprefix,
-              description='Talk to the TO.',
+              description=github,
               case_insensitive=True)
     bot.add_cog(auTO(bot, saved))
     bot.run(config.get('DISCORD_TOKEN'))
