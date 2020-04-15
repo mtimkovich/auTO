@@ -58,7 +58,7 @@ class ChallongeError(Exception):
     """Error code in Challonge response."""
 
 
-class TOCommands(commands.Cog):
+class auTO(commands.Cog):
     def __init__(self, bot, saved):
         self.bot = bot
         self.saved = saved
@@ -97,39 +97,39 @@ class TOCommands(commands.Cog):
         if tourney is not None:
             await tourney.delete_matches_category()
 
-    @commands.group(case_insensitive=True)
-    async def auTO(self, ctx):
-        msg = ctx.message.content.split()
-        if len(msg) == 2 and re.match(r'\d', msg[1]):
-            await self.report(ctx, msg[1])
-        elif ctx.invoked_subcommand is None:
-            await ctx.send('Use `@auTO help` for options')
+    # @commands.group(case_insensitive=True)
+    # async def auTO(self, ctx):
+    #     msg = ctx.message.content.split()
+    #     if len(msg) == 2 and re.match(r'\d', msg[1]):
+    #         await self.report(ctx, msg[1])
+    #     elif ctx.invoked_subcommand is None:
+    #         await ctx.send('Use `@auTO help` for options')
 
-    @auTO.command()
-    async def help(self, ctx):
-        help_list = [
-            '- `start URL` - start TOing',
-            '- `stop` - stop TOing',
-            '- `rename TAG @PLAYER` - Rename player to their Discord tag',
-            '- `noshow @PLAYER` - Start DQ process for player',
-            '- `update_tags` - get the latest Challonge tags',
-            '- `report 0-2` or `0-2` - report a match',
-            '- `matches` - print the active matches',
-            '- `status` - print how far along the tournament is',
-            '- `bracket` - print the bracket URL',
-            '',
-            '<https://github.com/mtimkovich/auTO#running-a-tournament>',
-        ]
-        await utils.send_list(ctx, help_list)
+    # @commands.command()
+    # async def help(self, ctx):
+    #     help_list = [
+    #         '- `start URL` - start TOing',
+    #         '- `stop` - stop TOing',
+    #         '- `rename TAG @PLAYER` - Rename player to their Discord tag',
+    #         '- `noshow @PLAYER` - Start DQ process for player',
+    #         '- `update_tags` - get the latest Challonge tags',
+    #         '- `report 0-2` or `0-2` - report a match',
+    #         '- `matches` - print the active matches',
+    #         '- `status` - print how far along the tournament is',
+    #         '- `bracket` - print the bracket URL',
+    #         '',
+    #         '<https://github.com/mtimkovich/auTO#running-a-tournament>',
+    #     ]
+    #     await utils.send_list(ctx, help_list)
 
-    @auTO.command()
+    @commands.command(brief='get latest Challonge tags')
     @has_tourney
     @is_to
     # pylint: disable=unused-argument
     async def update_tags(self, ctx, *, tourney=None):
         await tourney.gar.get_raw()
 
-    @auTO.command()
+    @commands.command(brief='rename player to their Discord tag')
     @has_tourney
     @is_to
     async def rename(self, ctx, challonge_tag: str, member: discord.Member,
@@ -146,7 +146,7 @@ class TOCommands(commands.Cog):
 
         await ctx.send(f'Renamed {challonge_tag} to {member.display_name}.')
 
-    @auTO.command()
+    @commands.command(brief='how far along the tournament is')
     @has_tourney
     async def status(self, ctx, *, tourney=None):
         await ctx.trigger_typing()
@@ -238,7 +238,7 @@ class TOCommands(commands.Cog):
             await self.update_tags(ctx)
         return tourney
 
-    @auTO.command(brief='Challonge URL of tournament')
+    @commands.command(brief='start running bracket')
     async def start(self, ctx, url: str):
         """Sets tournament URL and start calling matches."""
         if self.tournament_map.get(ctx.guild) is not None:
@@ -275,7 +275,7 @@ class TOCommands(commands.Cog):
             log.warning(e)
         await self.matches(ctx)
 
-    @auTO.command()
+    @commands.command(brief='stop TOing')
     @has_tourney
     @is_to
     # pylint: disable=unused-argument
@@ -300,7 +300,7 @@ class TOCommands(commands.Cog):
                 raise e
         await self._print_results(tourney)
 
-    @auTO.command()
+    @commands.command(brief='print Top 8')
     @has_tourney
     @is_to
     # pylint: disable=unused-argument
@@ -331,7 +331,7 @@ class TOCommands(commands.Cog):
             self.bot.change_presence(),
         )
 
-    @auTO.command()
+    @commands.command(brief='print current matches')
     @has_tourney
     # pylint: disable=unused-argument
     async def matches(self, ctx, *, tourney=None):
@@ -383,7 +383,7 @@ class TOCommands(commands.Cog):
             *(msg.delete() for msg in tourney.previous_match_msgs))
         tourney.previous_match_msgs = aws[0]
 
-    @auTO.command(brief='Report match results')
+    @commands.command(brief='report a match')
     @has_tourney
     async def report(self, ctx, scores_csv: str, *, tourney=None,
                      username=None):
@@ -431,13 +431,13 @@ class TOCommands(commands.Cog):
         await tourney.report_match(match, winner_id, username, scores_csv)
         await self.matches(ctx)
 
-    @auTO.command()
+    @commands.command(brief='print bracket URL')
     @has_tourney
     async def bracket(self, ctx, *, tourney=None):
         await ctx.trigger_typing()
         await ctx.send(await tourney.gar.get_url())
 
-    @auTO.command()
+    @commands.command(brief='start DQ process for player')
     @has_tourney
     @is_to
     async def noshow(self, ctx, user: discord.Member, *, tourney=None):
@@ -482,10 +482,6 @@ class TOCommands(commands.Cog):
             return
         if not isinstance(err, commands.MissingRequiredArgument):
             raise err
-        if ctx.invoked_subcommand.name == 'start':
-            await ctx.send('Tournament URL is required')
-        else:
-            await ctx.send(err)
 
     async def _load(self):
         if not self.saved:
@@ -529,15 +525,6 @@ class TOCommands(commands.Cog):
     async def on_message(self, message):
         if message.author == self.bot.user:
             return
-        id = self.bot.user.id
-        bot_mention = re.compile(rf'\s*<@!?{id}>')
-
-        if bot_mention.match(message.content):
-            # If someone mentions the bot, see if we can run it as a command.
-            message.content = bot_mention.sub(
-                '!auTO', message.content, count=1)
-            await self.bot.process_commands(message)
-            return
 
         tourney = self.tournament_map.get(message.guild)
         if tourney is None:
@@ -551,7 +538,7 @@ class TOCommands(commands.Cog):
 
 class Bot(commands.Bot):
     async def close(self):
-        await self.get_cog('TOCommands').close()
+        await self.get_cog('auTO').close()
         await super().close()
 
 
@@ -592,12 +579,21 @@ def setup_logging():
             logger.addHandler(handler)
 
 
+def iprefix(bot, message):
+    """Make prefix case insensitive and respond to @mentions."""
+    msg = message.content
+    if msg.lower().startswith('!auto '):
+        return commands.when_mentioned_or(msg[:6])(bot, message)
+    return commands.when_mentioned(bot, message)
+
+
 def main():
     saved = load_tournaments()
     setup_logging()
-    bot = Bot(command_prefix='!', description='Talk to the TO',
+    bot = Bot(command_prefix=iprefix,
+              description='Talk to the TO.',
               case_insensitive=True)
-    bot.add_cog(TOCommands(bot, saved))
+    bot.add_cog(auTO(bot, saved))
     bot.run(config.get('DISCORD_TOKEN'))
 
 
