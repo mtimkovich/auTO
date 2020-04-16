@@ -1,6 +1,6 @@
 """Some helper functions."""
 import re
-from typing import List
+from typing import List, Optional
 
 import discord
 
@@ -39,3 +39,10 @@ def channel_name(name: str) -> str:
     name = name.lower().replace(' ', '-')
     punctuation = re.escape(r'!"#$%&\'()*+,./:;<=>?@[\]^`{|}~')
     return re.sub(rf'[{punctuation}]+', '', name)
+
+
+def get_role(guild, role_name: str) -> Optional[discord.Role]:
+    for role in guild.roles:
+        if role.name == role_name:
+            return role
+    return None

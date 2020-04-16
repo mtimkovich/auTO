@@ -503,7 +503,7 @@ class auTO(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.author == self.bot.user:
+        if message.author.bot:
             return
 
         bot_id = self.bot.user.id
@@ -514,6 +514,14 @@ class auTO(commands.Cog):
             mapping = self.bot.help_command.get_bot_mapping()
             await self.bot.help_command.send_bot_help(mapping)
             return
+
+        bot_role = utils.get_role(message.guild, self.bot.user.name)
+        if bot_role is not None:
+            role_pattern = re.compile(rf'\s*<@&{bot_role.id}>')
+            if role_pattern.match(message.content):
+                message.content = role_pattern.sub('!auTO', message.content)
+                await self.bot.process_commands(message)
+                return
 
         tourney = self.tournament_map.get(message.guild)
         if tourney is None:

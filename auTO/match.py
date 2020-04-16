@@ -135,7 +135,7 @@ class Match():
             self.player2: PLAYER_PERM,
         }
 
-        to_role = self.tourney.get_role('TO')
+        to_role = utils.get_role(self.guild, 'TO')
         if to_role is not None:
             overwrites[to_role] = PLAYER_PERM
 

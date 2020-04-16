@@ -148,9 +148,6 @@ class Tournament():
         return next((m for m in self.guild.members
                      if utils.istrcmp(m.display_name, username)), None)
 
-    def get_role(self, role_name: str) -> Optional[discord.Role]:
-        return next((r for r in self.guild.roles if r.name == role_name), None)
-
     def get_channels(self, channel_name: str, type: ChannelType = None):
         if type == ChannelType.text:
             lst = self.guild.text_channels
