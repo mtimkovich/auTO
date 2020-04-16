@@ -506,6 +506,14 @@ class auTO(commands.Cog):
         if message.author == self.bot.user:
             return
 
+        bot_id = self.bot.user.id
+        if re.match(rf'\s*<@!?{bot_id}>\s*$', message.content):
+            ctx = await self.bot.get_context(message)
+            ctx.prefix = '@auTO '
+            self.bot.help_command.context = ctx
+            await self.bot.help_command.send_cog_help(self)
+            return
+
         tourney = self.tournament_map.get(message.guild)
         if tourney is None:
             return
