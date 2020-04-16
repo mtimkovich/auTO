@@ -16,7 +16,7 @@ help = {
         'brief': 'report a match',
         'description': (
             "Report a match result. The reporter's score goes first."),
-        'usage': '0-2 OR\n!auTO 2-0',
+        'usage': '0-2 OR\n!auTO 0-2',
     },
     'results': {
         'brief': 'print Top 8',
