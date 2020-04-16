@@ -442,6 +442,7 @@ class auTO(commands.Cog):
     @commands.Cog.listener()
     async def on_command_error(self, ctx, err):
         if isinstance(err, commands.CommandNotFound):
+            # Reporting shorthand.
             msg = ctx.message.content.split()
             if len(msg) == 2 and re.match(r'\d', msg[1]):
                 await self.report(ctx, msg[1])
@@ -455,11 +456,12 @@ class auTO(commands.Cog):
             else:
                 await ctx.send('Error connecting to Challonge 💀')
             return
-        if isinstance(err, commands.errors.BadArgument):
-            await ctx.send(err)
+        if isinstance(err, (commands.MissingRequiredArgument,
+                            commands.errors.BadArgument)):
+            self.bot.help_command.context = ctx
+            await self.bot.help_command.send_command_help(ctx.command)
             return
-        if not isinstance(err, commands.MissingRequiredArgument):
-            raise err
+        raise err
 
     async def _load(self):
         if not self.saved:
