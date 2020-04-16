@@ -98,23 +98,6 @@ class auTO(commands.Cog):
         if tourney is not None:
             await tourney.delete_matches_category()
 
-    # @commands.command()
-    # async def help(self, ctx):
-    #     help_list = [
-    #         '- `start URL` - start TOing',
-    #         '- `stop` - stop TOing',
-    #         '- `rename TAG @PLAYER` - Rename player to their Discord tag',
-    #         '- `noshow @PLAYER` - Start DQ process for player',
-    #         '- `update_tags` - get the latest Challonge tags',
-    #         '- `report 0-2` or `0-2` - report a match',
-    #         '- `matches` - print the active matches',
-    #         '- `status` - print how far along the tournament is',
-    #         '- `bracket` - print the bracket URL',
-    #         '',
-    #         '<https://github.com/mtimkovich/auTO#running-a-tournament>',
-    #     ]
-    #     await utils.send_list(ctx, help_list)
-
     @commands.command(**help['update_tags'])
     @has_tourney
     @is_to
