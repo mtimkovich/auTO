@@ -511,7 +511,8 @@ class auTO(commands.Cog):
             ctx = await self.bot.get_context(message)
             ctx.prefix = '@auTO '
             self.bot.help_command.context = ctx
-            await self.bot.help_command.send_cog_help(self)
+            mapping = self.bot.help_command.get_bot_mapping()
+            await self.bot.help_command.send_bot_help(mapping)
             return
 
         tourney = self.tournament_map.get(message.guild)
