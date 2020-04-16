@@ -458,8 +458,7 @@ class auTO(commands.Cog):
             return
         if isinstance(err, (commands.MissingRequiredArgument,
                             commands.errors.BadArgument)):
-            self.bot.help_command.context = ctx
-            await self.bot.help_command.send_command_help(ctx.command)
+            await ctx.send_help(ctx.command)
             return
         raise err
 
@@ -506,13 +505,11 @@ class auTO(commands.Cog):
         if message.author.bot:
             return
 
-        bot_id = self.bot.user.id
-        if re.match(rf'\s*<@!?{bot_id}>\s*$', message.content):
-            ctx = await self.bot.get_context(message)
-            ctx.prefix = '@auTO '
-            self.bot.help_command.context = ctx
-            mapping = self.bot.help_command.get_bot_mapping()
-            await self.bot.help_command.send_bot_help(mapping)
+        # Print help if only the prefix is entered.
+        prefixes = await self.bot.get_prefix(message)
+        if message.content.strip() in (p.strip() for p in prefixes):
+            message.content += ' help'
+            await self.bot.process_commands(message)
             return
 
         tourney = self.tournament_map.get(message.guild)
@@ -571,11 +568,12 @@ class Bot(commands.Bot):
 def iprefix(bot, msg):
     """Make prefix case insensitive and respond to @mentions."""
     prefixes = []
-    prefix = '!auto '
+    prefix = '!auto'
     if msg.content.lower().startswith(prefix):
-        prefixes.append(msg.content[:len(prefix)])
+        prefixes.append(msg.content[:len(prefix)] + ' ')
 
-    bot_role = discord.utils.get(msg.guild.roles, name=bot.user.name)
+    bot_role = discord.utils.get(
+        msg.guild.roles, name=bot.user.name, managed=True)
     if bot_role is not None:
         prefixes.append(f'<@&{bot_role.id}> ')
 
