@@ -145,8 +145,10 @@ class Tournament():
 
     def get_user(self, username: str) -> Optional[discord.Member]:
         """Get member by username."""
-        return next((m for m in self.guild.members
-                     if utils.istrcmp(m.display_name, username)), None)
+        for m in self.guild.members:
+            if utils.istrcmp(m.display_name, username):
+                return m
+        return None
 
     def get_channels(self, channel_name: str, type: ChannelType = None):
         if type == ChannelType.text:

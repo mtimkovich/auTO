@@ -515,14 +515,6 @@ class auTO(commands.Cog):
             await self.bot.help_command.send_bot_help(mapping)
             return
 
-        bot_role = utils.get_role(message.guild, self.bot.user.name)
-        if bot_role is not None:
-            role_pattern = re.compile(rf'\s*<@&{bot_role.id}>')
-            if role_pattern.match(message.content):
-                message.content = role_pattern.sub('!auTO', message.content)
-                await self.bot.process_commands(message)
-                return
-
         tourney = self.tournament_map.get(message.guild)
         if tourney is None:
             return
@@ -576,13 +568,18 @@ class Bot(commands.Bot):
         await super().close()
 
 
-def iprefix(bot, message):
+def iprefix(bot, msg):
     """Make prefix case insensitive and respond to @mentions."""
-    msg = message.content
+    prefixes = []
     prefix = '!auto '
-    if msg.lower().startswith(prefix):
-        return commands.when_mentioned_or(msg[:len(prefix)])(bot, message)
-    return commands.when_mentioned(bot, message)
+    if msg.content.lower().startswith(prefix):
+        prefixes.append(msg.content[:len(prefix)])
+
+    bot_role = discord.utils.get(msg.guild.roles, name=bot.user.name)
+    if bot_role is not None:
+        prefixes.append(f'<@&{bot_role.id}> ')
+
+    return commands.when_mentioned_or(*prefixes)(bot, msg)
 
 
 def main():
