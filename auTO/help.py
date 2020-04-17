@@ -12,30 +12,30 @@ class HelpDoc(dict):
         return s[0].upper() + s[1:] + '.'
 
 
-help = {
-    'bracket': HelpDoc('print the bracket URL'),
-    'matches': HelpDoc('print the current matches'),
-    'noshow': HelpDoc(
+help = dict(
+    bracket=HelpDoc('print the bracket URL'),
+    matches=HelpDoc('print the current matches'),
+    noshow=HelpDoc(
         'start DQ process for player',
         ('Notify @Player that they are in danger of being DQed. They have '
          '5 minutes to post in the chat before being removed from bracket.'),
         '@Player'),
-    'rename': HelpDoc(
+    rename=HelpDoc(
         'rename player to their Discord tag',
         '',
         '"TAG" @Player'),
-    'report': HelpDoc(
+    report=HelpDoc(
         'report a match',
         "Report a match result. The reporter's score goes first.",
         '0-2 OR\n!auTO 0-2'),
-    'results': HelpDoc(
+    results=HelpDoc(
         'print Top 8',
         'Print Top 8 if the bracket is finished.'),
-    'start': HelpDoc(
+    start=HelpDoc(
         'start running bracket',
         'Start TOing and calling matches.',
         'CHALLONGE_URL'),
-    'status': HelpDoc('how far along the tournament is'),
-    'stop': HelpDoc('stop TOing'),
-    'update_tags': HelpDoc('get latest Challonge tags'),
-}
+    status=HelpDoc('how far along the tournament is'),
+    stop=HelpDoc('stop TOing'),
+    update_tags=HelpDoc('get latest Challonge tags'),
+)
