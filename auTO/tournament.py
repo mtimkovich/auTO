@@ -46,6 +46,7 @@ class Tournament():
         self.previous_match_msgs = []
         self.called_matches = {}
         self.recently_called = {}
+        # TODO: Create category for each tournament.
         self.category = None
         self.gar = challonge.Challonge(api_key, tournament_id, session)
 
