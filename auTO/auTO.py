@@ -225,7 +225,7 @@ class auTO(commands.Cog):
         except (ValueError, ChallongeError, ClientResponseError) as e:
             tourney = None
             if str(e):
-                await ctx.send(e)
+                await ctx.send('Error starting tournament.')
         if tourney is None:
             await self._tourney_stop(ctx.guild)
             return
