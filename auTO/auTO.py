@@ -208,6 +208,14 @@ class auTO(commands.Cog):
 
         has_missing = await tourney.missing_tags(ctx.author)
         if has_missing:
+            msg = [
+                'How do you want to proceed?',
+                '  1: Continue anyway',
+                '  2: DQ',
+                '  3: Stop'
+                'Respond with 1, 2, or 3.'
+            ]
+            await utils.send_list(msg)
             confirm = await self._confirm(ctx.author, 'Continue anyway?')
             if not confirm:
                 raise ValueError
