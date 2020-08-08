@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from time import time
-from typing import Optional
+from typing import Optional, List
 
 import discord
 from discord import ChannelType
@@ -118,18 +118,18 @@ class Tournament():
             self.recently_called.pop(reporter)
         return False
 
-    async def missing_tags(self, owner) -> bool:
+    async def missing_tags(self, owner) -> List[str]:
         """Check the participants list for players not on the server."""
         dms = await utils.get_dms(owner)
         missing = [player for player in await self.gar.get_players()
                    if not self.get_user(player)]
         if not missing:
-            return False
+            return []
         message = ['Missing Discord accounts for the following players:']
         for p in missing:
             message.append(f'- {p}')
         await utils.send_list(dms, message)
-        return True
+        return missing
 
     def permissions(self) -> discord.Permissions:
         """Gets our permissions on the server."""
