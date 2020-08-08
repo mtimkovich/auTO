@@ -13,7 +13,7 @@ setup(
     description='A Discord bot for TOing netplay tournaments',
     long_description=README,
     install_requires=[
-        'discord.py >= 1.3.2',
+        'discord.py >= 1.3.4',
         'pyyaml',
     ],
     setup_requires=['wheel'],
