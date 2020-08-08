@@ -98,6 +98,33 @@ class auTO(commands.Cog):
         if tourney is not None:
             await tourney.delete_matches_category()
 
+    async def _fix_missing(self, ctx, tourney):
+        """How to deal with players missing Discord accounts."""
+        missing = await tourney.missing_tags(ctx.author)
+        while missing:
+            msg = [
+                'How do you want to proceed?',
+                '[1] Continue anyway',
+                '[2] DQ mismatched players',
+                '[3] Stop tourney creation',
+                'Respond with 1, 2, or 3.',
+            ]
+            await utils.send_list(ctx.author, msg)
+            msg = await self.bot.wait_for(
+                    'message', check=self._is_dm_response(ctx.author))
+            try:
+                ret = int(msg.content.strip())
+            except ValueError:
+                continue
+            if ret in {1, 2}:
+                await self.update_tags(ctx)
+                if ret == 2:
+                    await asyncio.gather(
+                            *(tourney.gar.dq(p) for p in missing))
+                return True
+            elif ret == 3:
+                return False
+
     @commands.command(**help['update_tags'])
     @has_tourney
     @is_to
@@ -206,20 +233,9 @@ class auTO(commands.Cog):
         if await self._invalid_state(ctx, tourney):
             raise ChallongeError('Invalid tournament state.')
 
-        has_missing = await tourney.missing_tags(ctx.author)
-        if has_missing:
-            msg = [
-                'How do you want to proceed?',
-                '  1: Continue anyway',
-                '  2: DQ',
-                '  3: Stop'
-                'Respond with 1, 2, or 3.'
-            ]
-            await utils.send_list(msg)
-            confirm = await self._confirm(ctx.author, 'Continue anyway?')
-            if not confirm:
-                raise ValueError
-            await self.update_tags(ctx)
+        response = await self._fix_missing(ctx, tourney)
+        if not response:
+            raise ValueError
         return tourney
 
     @commands.command(**help['start'])
@@ -580,8 +596,11 @@ def iprefix(bot, msg):
     if msg.content.lower().startswith(prefix):
         prefixes.append(msg.content[:len(prefix)] + ' ')
 
-    bot_role = discord.utils.get(
-        msg.guild.roles, name=bot.user.name, managed=True)
+    try:
+        bot_role = discord.utils.get(
+            msg.guild.roles, name=bot.user.name, managed=True)
+    except AttributeError:
+        bot_role = None
     if bot_role is not None:
         prefixes.append(f'<@&{bot_role.id}> ')
 
