@@ -124,6 +124,7 @@ class auTO(commands.Cog):
                 return True
             elif ret == 3:
                 return False
+        return True
 
     @commands.command(**help['update_tags'])
     @has_tourney
