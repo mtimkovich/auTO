@@ -101,6 +101,7 @@ class auTO(commands.Cog):
     async def _fix_missing(self, ctx, tourney):
         """How to deal with players missing Discord accounts."""
         missing = await tourney.missing_tags(ctx.author)
+
         while missing:
             msg = [
                 'How do you want to proceed?',
@@ -612,8 +613,11 @@ def main():
     saved = load_tournaments()
     setup_logging()
     github = 'https://github.com/mtimkovich/auTO#running-a-tournament'
+    intents = discord.Intents.default()
+    intents.members = True
     bot = Bot(command_prefix=iprefix,
               description=github,
+              intents=intents,
               case_insensitive=True)
     bot.add_cog(auTO(bot, saved))
     bot.run(config.get('DISCORD_TOKEN'))

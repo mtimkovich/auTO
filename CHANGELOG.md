@@ -1,5 +1,9 @@
 # Changelog
 
+### 1.5.4
+* Update discord.py to 1.5.1.
+* Enable privileged intents for accessing member list.
+
 ### 1.5.2
 * Introduce `2-0` as a shortcut for `report 2-0`.
 * `@auTO` as an alternative to `!auTO`.

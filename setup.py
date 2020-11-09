@@ -6,14 +6,14 @@ with open('README.md') as f:
 setup(
     name='auTO',
     url='https://github.com/mtimkovich/auTO',
-    version='1.5.3',
+    version='1.5.4',
     author='Max Timkovich',
     author_email='max@timkovi.ch',
     license='MIT',
     description='A Discord bot for TOing netplay tournaments',
     long_description=README,
     install_requires=[
-        'discord.py >= 1.3.4',
+        'discord.py >= 1.5.1',
         'pyyaml',
     ],
     setup_requires=['wheel'],
