@@ -22,8 +22,6 @@ from . import utils
 PICKLE_FILE = 'auTO.pickle'
 log = logging.getLogger(__name__)
 
-netplay_code = re.compile(r'\b[a-f0-9]{8}\b')
-
 
 def has_tourney(func):
     """Decorator that returns if no tourney is set."""
@@ -123,7 +121,7 @@ class auTO(commands.Cog):
                     await asyncio.gather(
                             *(tourney.gar.dq(p) for p in missing))
                 return True
-            elif ret == 3:
+            if ret == 3:
                 return False
         return True
 
@@ -227,13 +225,13 @@ class auTO(commands.Cog):
         except ClientResponseError as e:
             if e.code == 401:
                 await ctx.author.dm_channel.send('Invalid API Key')
-                raise ChallongeError
+                raise ChallongeError from ClientResponseError
             if e.code == 404:
-                raise ChallongeError('Invalid tournament URL.')
+                raise ChallongeError('Invalid tournament URL.') from ClientResponseError
             raise e
 
         if await self._invalid_state(ctx, tourney):
-            raise ChallongeError('Invalid tournament state.')
+            raise ChallongeError('Invalid tournament state.') from ClientResponseError
 
         response = await self._fix_missing(ctx, tourney)
         if not response:
@@ -515,17 +513,6 @@ class auTO(commands.Cog):
         log.info('auTO has connected to Discord.')
         await self._load()
 
-    async def _has_netplay_code(self, tourney, message):
-        """Mark matches underway when a netplay code is posted."""
-        if not netplay_code.search(message.content):
-            return
-        if len(message.mentions) == 1:
-            await tourney.mark_match_underway(
-                message.author, message.mentions[0])
-        elif (tourney.category and
-              message.channel in tourney.category.text_channels):
-            await tourney.mark_match_underway(message.author)
-
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
@@ -544,8 +531,6 @@ class auTO(commands.Cog):
         if message.content == '!bracket':
             await message.channel.send(await tourney.gar.get_url())
             return
-
-        await self._has_netplay_code(tourney, message)
 
 
 def load_tournaments():

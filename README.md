@@ -1,10 +1,10 @@
 # auTO
 
-auTO is a Discord bot for running netplay tournaments by calling matches and reporting results.
+auTO is a Discord bot for running netplay tournaments by calling matches and allowing players to self-report results. It speeds up running brackets and lets TOs do less work.
 
 ![auTO Preview][preview]
 
-auTO can only manage tournaments ran through [Challonge](https://challonge.com).
+auTO manages tournaments ran through [Challonge](https://challonge.com).
 
 ## Features
 * List active matches.
@@ -12,15 +12,15 @@ auTO can only manage tournaments ran through [Challonge](https://challonge.com).
 * Create private voice and text channels for each match.
 * Players can report their own matches without going through the TO.
 * TOs can start an auto DQ timer for missing players (`noshow`).
-* Mark matches as in progress when players post netplay codes in the chat.
-* Automatic RPS: Player order is randomized, so first player listed stage strikes first.
+* Automatic RPS. No more need to use Mr. Game & Watch to figure out who
+  gets to stage-strike first.
 
 ## Setup
 
 Invite auTO to your Discord server by [clicking here][invite]. You'll need the "Manage Server"
 permission.
 
-I also recommend creating a role called "TO" on your server. Everyone with this role will
+It's also recommended to create a role called "TO" on your server. Everyone with this role will
 be able to run commands requiring the TO permission. By default, only the creator and admins
 are able to run TO commands.
 
@@ -32,7 +32,8 @@ are able to run TO commands.
     their nickname as it appears on the tournament server and doesn't include the "#12345"
     identifier at the end.
 3. Run `@auTO start CHALLONGE_URL` in the channel you want the tournament to run.
-    1. auTO will dm you to ask for your Challonge API key. (This is deleted as soon as the
+    1. Note: If your tournament is part of a community, the `CHALLONGE_URL` will need to be `https://challonge.com/community_name-tournament_name`. You can find `community_name` under the "Settings" tab for your community, in the "Subdomain" field.
+    2. auTO will dm you to ask for your Challonge API key. (This is deleted as soon as the
        tournament finishes.)
 4. auTO will start calling matches!
 5. Players report their matches using the `@auTO report` command.
@@ -64,7 +65,7 @@ command, the user must be an admin or in a role called "TO".
 * Pacific Showdown Online
 * MTV Melee
 
-Please let me know if you use auTO for your tournament: I'd love to hear about it!
+Please let me know if you use auTO for your tournament—I'd love to hear about it!
 
 ## Bug/Feature Requests
 

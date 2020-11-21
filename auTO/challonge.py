@@ -276,7 +276,7 @@ class Challonge():
             if e.code == 422:
                 raise ValueError(
                     f"Can't rename '{tag}' to '{discord_name}'. "
-                    "Possible duplicate?")
+                    "Possible duplicate?") from ClientResponseError
             raise e
 
         await self.get_raw()
