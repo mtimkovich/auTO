@@ -3,6 +3,7 @@
 ### 1.5.4
 * Update discord.py to 1.5.1.
 * Enable privileged intents for accessing member list.
+* Unpin the bracket after the tournament has ended.
 
 ### 1.5.2
 * Introduce `2-0` as a shortcut for `report 2-0`.

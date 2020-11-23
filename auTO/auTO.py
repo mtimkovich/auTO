@@ -93,8 +93,16 @@ class auTO(commands.Cog):
 
     async def _tourney_stop(self, guild):
         tourney = self.tournament_map.pop(guild, None)
-        if tourney is not None:
-            await tourney.delete_matches_category()
+        if tourney is None:
+            return
+
+        await tourney.delete_matches_category()
+
+        if tourney.pinned is not None:
+            try:
+                await tourney.pinned.unpin()
+            except discord.HTTPException as e:
+                log.warning(e)
 
     async def _fix_missing(self, ctx, tourney):
         """How to deal with players missing Discord accounts."""
@@ -270,6 +278,7 @@ class auTO(commands.Cog):
             f'Starting {name}! Please stop your friendlies. {url}')
         try:
             await start_msg.pin()
+            tourney.pinned = start_msg
         except discord.HTTPException as e:
             log.warning(e)
         await self.matches(ctx)
@@ -279,11 +288,14 @@ class auTO(commands.Cog):
     @is_to
     # pylint: disable=unused-argument
     async def stop(self, ctx, *, tourney=None):
-        await asyncio.gather(
-            self._tourney_stop(ctx.guild),
-            self.bot.change_presence(),
-            ctx.send('Goodbye 😞')
-        )
+        try:
+            await asyncio.gather(
+                self._tourney_stop(ctx.guild),
+                self.bot.change_presence(),
+                ctx.send('Goodbye 😞')
+            )
+        except discord.HTTPException as e:
+            log.warning(e)
 
     async def _end_tournament(self, tourney):
         name = await tourney.gar.get_name()
@@ -291,6 +303,8 @@ class auTO(commands.Cog):
             tourney.owner, f'{name} is completed. Finalize?')
         if not confirm:
             return
+
+        await tourney.unpin()
 
         try:
             await tourney.gar.finalize()
