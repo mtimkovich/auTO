@@ -449,6 +449,18 @@ class auTO(commands.Cog):
         await ctx.trigger_typing()
         await ctx.send(await tourney.gar.get_url())
 
+    @commands.command(**help['dq'])
+    @has_tourney
+    @is_to
+    async def dq(self, ctx, user: discord.Member, *, tourney=None):
+        match = tourney.find_match(user.display_name)
+        if match is None:
+            await tourney.channel.send(f'{user.display_name} does not have a '
+                                       'match to be DQed from.')
+            return
+        await tourney.dq(user)
+        await self.matches(ctx)
+
     @commands.command(**help['noshow'])
     @has_tourney
     @is_to
@@ -469,12 +481,7 @@ class auTO(commands.Cog):
                 'message', check=lambda m: m.author == user,
                 timeout=FIVE_MINUTES)
         except asyncio.TimeoutError:
-            msg = await tourney.channel.send(f'{user.mention} has been DQed')
-            try:
-                await msg.add_reaction('🇫')
-            except discord.DiscordException as e:
-                log.warning(e)
-            await tourney.gar.dq(user.display_name)
+            await tourney.dq(user)
             await self.matches(ctx)
 
     @commands.Cog.listener()

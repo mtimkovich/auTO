@@ -155,6 +155,14 @@ class Tournament():
                 return m
         return None
 
+    async def dq(self, user: discord.Member):
+        await self.gar.dq(user.display_name)
+        msg = await self.channel.send(f'{user.mention} has been DQed')
+        try:
+            await msg.add_reaction('🇫')
+        except discord.DiscordException:
+            pass
+
     def get_channels(self, channel_name: str, type: ChannelType = None):
         if type == ChannelType.text:
             lst = self.guild.text_channels

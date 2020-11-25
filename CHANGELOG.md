@@ -4,6 +4,7 @@
 * Update discord.py to 1.5.1.
 * Enable privileged intents for accessing member list.
 * Unpin the bracket after the tournament has ended.
+* Add `dq` command.
 
 ### 1.5.2
 * Introduce `2-0` as a shortcut for `report 2-0`.

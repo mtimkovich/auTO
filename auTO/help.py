@@ -20,6 +20,10 @@ help = dict(
         ('Notify @Player that they are in danger of being DQed. They have '
          '5 minutes to post in the chat before being removed from bracket.'),
         '@Player'),
+    dq=HelpDoc(
+        'DQ player',
+        '',
+        '@Player'),
     rename=HelpDoc(
         'rename player to their Discord tag',
         '',

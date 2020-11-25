@@ -1,10 +1,10 @@
 # auTO
 
-auTO is a Discord bot for running netplay tournaments by calling matches and allowing players to self-report results. It speeds up running brackets and lets TOs do less work.
+auTO is a Discord bot for running [Challonge](https://challonge.com) netplay tournaments by calling
+matches and allowing players to self-report results. It speeds up running brackets and lets TOs do
+less work.
 
 ![auTO Preview][preview]
-
-auTO manages tournaments ran through [Challonge](https://challonge.com).
 
 ## Features
 * List active matches.
@@ -50,6 +50,7 @@ command, the user must be an admin or in a role called "TO".
 | `results`               | TO          | Print results after tournament is finalized          |
 | `rename TAG @PLAYER`    | TO          | Rename player to their Discord username              |
 | `noshow @PLAYER`        | TO          | Give player 5 minutes to post in the chat or be DQed |
+| `dq @PLAYER`            | TO          | DQ player                                            |
 | `update_tags`           | TO          | Get the latest tags from Challonge                   |
 | `report 0-2` or `0-2`   | Players     | Report a match (reporter's score goes first)         |
 | `matches`               | All         | Print current matches                                |
@@ -59,13 +60,13 @@ command, the user must be an admin or in a role called "TO".
 
 ## Used By
 * Dutch Melee Netplay
-* 6 Buffer Saturday
 * Hamburg SSB
 * Chicagoland Melee
-* Pacific Showdown Online
+* North Carolina Melee
+* Smash Mines Online
 * MTV Melee
 
-Please let me know if you use auTO for your tournament—I'd love to hear about it!
+Let me know if you use auTO for your tournament—I'd love to hear about it!
 
 ## Bug/Feature Requests
 
