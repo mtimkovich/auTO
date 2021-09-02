@@ -98,12 +98,6 @@ class auTO(commands.Cog):
 
         await tourney.delete_matches_category()
 
-        if tourney.pinned is not None:
-            try:
-                await tourney.pinned.unpin()
-            except discord.HTTPException as e:
-                log.warning(e)
-
     async def _fix_missing(self, ctx, tourney):
         """How to deal with players missing Discord accounts."""
         missing = await tourney.missing_tags(ctx.author)
@@ -276,11 +270,6 @@ class auTO(commands.Cog):
                  f'{tourney.guild.name}.')
         start_msg = await ctx.send(
             f'Starting {name}! Please stop your friendlies. {url}')
-        try:
-            await start_msg.pin()
-            tourney.pinned = start_msg
-        except discord.HTTPException as e:
-            log.warning(e)
         await self.matches(ctx)
 
     @commands.command(**help['stop'])

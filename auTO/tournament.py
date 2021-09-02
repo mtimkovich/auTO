@@ -47,16 +47,11 @@ class Tournament():
         self.called_matches = {}
         self.recently_called = {}
         self.category = None
-        self.pinned = None
         self.gar = challonge.Challonge(api_key, tournament_id, session)
 
     async def get_open_matches(self):
         matches = await self.gar.get_matches()
         return [m for m in matches if m['state'] == 'open']
-
-    async def unpin(self):
-        if self.pinned is not None:
-            await self.pinned.unpin()
 
     @manage_channels
     async def create_matches_category(self):
